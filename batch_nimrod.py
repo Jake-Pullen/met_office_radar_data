@@ -1,4 +1,4 @@
-from nimrod_3 import Nimrod
+from nimrod import Nimrod
 import os
 from pathlib import Path
 import re
