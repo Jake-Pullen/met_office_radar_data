@@ -1,0 +1,16 @@
+bounding_box_info:
+# SITE_NAME:
+#   - XMIN 
+#   - XMAX
+#   - YMIN
+#   - YMAX
+  BRISCS:
+    - 607000
+    - 608000
+    - 217000
+    - 218000
+  WINTSC:
+    - 499000
+    - 500000
+    - 416000
+    - 417000

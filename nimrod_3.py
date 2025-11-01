@@ -67,17 +67,48 @@ import sys
 import struct
 import array
 import argparse
+from typing import IO
 
 
 class Nimrod:
-    """Reading, querying and processing of NIMROD format rainfall data files."""
+    """
+    Reading, querying and processing of NIMROD format rainfall data files.
+
+    This class provides functionality to parse NIMROD format files, display
+    header information, and extract raster data to ESRI ASCII format files.
+
+    Attributes:
+        hdr_element (List): List of all header elements indexed by element number
+        nrows (int): Number of rows in the raster image
+        ncols (int): Number of columns in the raster image
+        n_data_specific_reals (int): Number of data-specific real header entries
+        n_data_specific_ints (int): Number of data-specific integer header entries
+        y_top (float): Top northing coordinate
+        y_pixel_size (float): Size of pixel in y-direction
+        x_left (float): Left easting coordinate
+        x_pixel_size (float): Size of pixel in x-direction
+        x_right (float): Right easting coordinate
+        y_bottom (float): Bottom northing coordinate
+        data (array.array): Raster data array
+    """
 
     class RecordLenError(Exception):
         """
         Exception Type: NIMROD record length read from file not as expected.
+
+        Attributes:
+            message (str): Error message describing the problem
         """
 
-        def __init__(self, actual, expected, location):
+        def __init__(self, actual: int, expected: int, location: str) -> None:
+            """
+            Initialize the RecordLenError with details about the error.
+
+            Args:
+                actual (int): Actual record length read from file
+                expected (int): Expected record length
+                location (str): Description of position in file where error occurred
+            """
             self.message = "Incorrect record length %d bytes (expected %d) at %s." % (
                 actual,
                 expected,
@@ -85,43 +116,57 @@ class Nimrod:
             )
 
     class HeaderReadError(Exception):
-        """Exception Type: Read error whilst parsing NIMROD header elements."""
+        """
+        Exception Type: Read error whilst parsing NIMROD header elements.
+
+        This exception is raised when there are issues reading the header data
+        from a NIMROD file.
+        """
 
         pass
 
     class PayloadReadError(Exception):
-        """Exception Type: Read error whilst parsing NIMROD raster data."""
+        """
+        Exception Type: Read error whilst parsing NIMROD raster data.
+
+        This exception is raised when there are issues reading the raster data
+        payload from a NIMROD file.
+        """
 
         pass
 
     class BboxRangeError(Exception):
         """
         Exception Type: Bounding box specified out of range of raster image.
+
+        This exception is raised when a bounding box is specified that does not
+        intersect with the raster image data.
         """
 
         pass
 
-    def __init__(self, infile):
+    def __init__(self, infile: IO[bytes]) -> None:
         """
         Parse all header and data info from a NIMROD data file into this object.
-        (This method based on read_nimrod.py by Charles Kilburn Aug 2008)
 
         Args:
-            infile: NIMROD file object opened for binary reading
+            infile (IO[bytes]): NIMROD file object opened for binary reading
+
         Raises:
             RecordLenError: NIMROD record length read from file not as expected
             HeaderReadError: Read error whilst parsing NIMROD header elements
             PayloadReadError: Read error whilst parsing NIMROD raster data
         """
 
-        def check_record_len(infile, expected, location):
+        def check_record_len(infile: IO[bytes], expected: int, location: str) -> None:
             """
             Check record length in C struct is as expected.
 
             Args:
-                infile: file to read from
-                expected: expected value of record length read
-                location: description of position in file (for reporting)
+                infile (IO[bytes]): file to read from
+                expected (int): expected value of record length read
+                location (str): description of position in file (for reporting)
+
             Raises:
                 HeaderReadError: Read error whilst reading record length
                 RecordLenError: Unexpected NIMROD record length read from file
@@ -220,8 +265,14 @@ class Nimrod:
         check_record_len(infile, array_size * 2, "data end")
         infile.close()
 
-    def query(self):
-        """Print complete NIMROD file header information."""
+    def query(self) -> None:
+        """
+        Print complete NIMROD file header information.
+
+        This method displays all header information from the parsed NIMROD file
+        in a formatted manner including general headers, data-specific headers,
+        and character headers along with validity time and coordinate ranges.
+        """
 
         print("NIMROD file raw header fields listed by element number:")
         print("General (Integer) header entries:")
@@ -273,7 +324,7 @@ class Nimrod:
         )
         print("Image size: %d rows x %d cols" % (self.nrows, self.ncols))
 
-    def apply_bbox(self, xmin, xmax, ymin, ymax):
+    def apply_bbox(self, xmin: float, xmax: float, ymin: float, ymax: float) -> None:
         """
         Clip raster data to all pixels that intersect specified bounding box.
 
@@ -283,10 +334,11 @@ class Nimrod:
         width of the raster edge will intersect with the pixel.
 
         Args:
-            xmin: Most negative easting or longitude of bounding box
-            xmax: Most positive easting or longitude of bounding box
-            ymin: Most negative northing or latitude of bounding box
-            ymax: Most positive northing or latitude of bounding box
+            xmin (float): Most negative easting or longitude of bounding box
+            xmax (float): Most positive easting or longitude of bounding box
+            ymin (float): Most negative northing or latitude of bounding box
+            ymax (float): Most positive northing or latitude of bounding box
+
         Raises:
             BboxRangeError: Bounding box specified out of range of raster image
         """
@@ -337,12 +389,15 @@ class Nimrod:
         self.hdr_element[34] = self.y_top
         self.hdr_element[36] = self.x_left
 
-    def extract_asc(self, outfile):
+    def extract_asc(self, outfile: IO[str]) -> None:
         """
         Write raster data to an ESRI ASCII (.asc) format file.
 
         Args:
-            outfile: file object opened for writing text
+            outfile (IO[str]): file object opened for writing text
+
+        Raises:
+            ValueError: If x_pixel_size != y_pixel_size (non-square pixels)
         """
 
         # As ESRI ASCII format only supports square pixels, warn if not so
