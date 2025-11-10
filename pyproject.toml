@@ -5,6 +5,7 @@ description = "Convert .dat nimrod files to .asc files"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "numpy>=2.3.4",
     "pyyaml>=6.0.3",
     "ruff>=0.14.3",
 ]
