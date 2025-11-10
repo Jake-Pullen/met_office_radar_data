@@ -11,4 +11,5 @@ wheels/
 
 dat_files/*
 asc_files/*
+csv_files/*
 *.tar.gz
