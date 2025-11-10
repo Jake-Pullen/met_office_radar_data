@@ -83,7 +83,8 @@ def process_nimrod_files() -> None:
         }
 
     # read all file names in the folder
-    area_folders = os.listdir(IN_TOP_FOLDER)
+    # area_folders = os.listdir(IN_TOP_FOLDER)
+    area_folders = ['BRISCS', 'WINTSC']
 
     for area in area_folders:
         bounding_box = bounding_box_info.get(area, (0, 0, 0, 0))
@@ -91,11 +92,11 @@ def process_nimrod_files() -> None:
         xmin, xmax, ymin, ymax = bounding_box
         os.makedirs(Path(OUT_TOP_FOLDER, area), exist_ok=True)
 
-        for in_file in os.listdir(Path(IN_TOP_FOLDER, area)):
+        for in_file in os.listdir(Path(IN_TOP_FOLDER)):
             timestamp = get_datetime(in_file)
             out_file_name = f"{timestamp}_{area}.asc"
             out_file_path = Path(OUT_TOP_FOLDER, area, out_file_name)
-            in_file_full = Path(IN_TOP_FOLDER, area, in_file)
+            in_file_full = Path(IN_TOP_FOLDER, in_file)
 
             try:
                 image = Nimrod(open(in_file_full, "rb"))
