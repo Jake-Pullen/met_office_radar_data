@@ -20,6 +20,7 @@ IN_TOP_FOLDER = "./dat_files"
 OUT_TOP_FOLDER = "./asc_files"
 CONFIG_FILE = "config.yaml"
 
+
 def get_datetime(file_name: str) -> str:
     """
     Extract datetime from a filename using regex pattern matching.
@@ -75,9 +76,9 @@ def process_nimrod_files() -> None:
     """
     # Read all file names in the folder
     files_to_process = [f for f in os.listdir(Path(IN_TOP_FOLDER))]
-    
+
     logging.info(f"Processing {len(files_to_process)} files...")
-    
+
     os.makedirs(Path(OUT_TOP_FOLDER), exist_ok=True)
 
     for in_file in os.listdir(Path(IN_TOP_FOLDER)):
@@ -90,7 +91,7 @@ def process_nimrod_files() -> None:
             image = Nimrod(open(in_file_full, "rb"))
             with open(out_file_path, "w") as outfile:
                 image.extract_asc(outfile)
-            #logging.info(f"Successfully processed: {in_file_full}")
+            # logging.info(f"Successfully processed: {in_file_full}")
 
         except Nimrod.HeaderReadError as e:
             logging.error(f"Failed to read file {in_file_full}, is it corrupt?")
