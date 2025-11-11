@@ -4,7 +4,7 @@ from pathlib import Path
 import logging
 
 
-class BatchNimrod():
+class BatchNimrod:
     def __init__(self, config) -> None:
         self.config = config
 
@@ -32,7 +32,7 @@ class BatchNimrod():
 
                 with open(out_file_path, "w") as outfile:
                     image.extract_asc(outfile)
-                
+
                 # delete dat file here
 
                 logging.debug(f"Successfully processed: {in_file_full}")

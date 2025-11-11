@@ -1,8 +1,9 @@
 from __future__ import division, print_function
 import numpy as np
-import glob
+from pathlib import Path
 import pandas as pd
 from datetime import datetime
+import os
 
 
 class GenerateTimeseries:
@@ -21,7 +22,6 @@ class GenerateTimeseries:
         with open(ascii_raster_file) as f:
             header_data = [float(f.__next__().split()[1]) for x in range(6)]
         return header_data
-
 
     def _calculate_crop_coords(self, basin_header: list, radar_header: list) -> tuple:
         """Calculate crop coordinates based on header data
@@ -45,7 +45,7 @@ class GenerateTimeseries:
         ncols_basin = 2  # hardcoded, likely to change?
 
         cellres_radar = radar_header[4]
-        cellres_basin = 1000 # 1km
+        cellres_basin = 1000  # 1km
 
         xp = x0_basin - x0_radar
         yp = y0_basin - y0_radar
@@ -59,9 +59,7 @@ class GenerateTimeseries:
         start_row = np.floor(nrows_radar - ((yp + ypp) / cellres_radar))
         end_row = np.ceil(nrows_radar - (yp / cellres_radar))
 
-        #print(start_col, start_row, end_col, end_row)
         return int(start_col), int(start_row), int(end_col), int(end_row)
-
 
     def extract_cropped_rain_data(self, location):
         """Extract cropped rain data and create rainfall timeseries
@@ -72,29 +70,24 @@ class GenerateTimeseries:
         rainfile = []
         datetime_list = []
 
-        for f in glob.iglob(f'{self.config.ASC_TOP_FOLDER}/*.asc'):
-            # print(f)
-            radar_header = self._read_ascii_header(f)
+        for file_name in os.listdir(Path(self.config.ASC_TOP_FOLDER)):
+            file_path = Path(self.config.ASC_TOP_FOLDER, file_name)
+
+            radar_header = self._read_ascii_header(str(file_path))
+
+            # Calculate crop coordinates
             start_col, start_row, end_col, end_row = self._calculate_crop_coords(
                 location, radar_header
             )
 
-            start_col = int(round(start_col))
-            start_row = int(round(start_row))
-            end_col = int(round(end_col))
-            end_row = int(round(end_row))
-
-            cur_rawgrid = np.genfromtxt(
-                f, skip_header=6, filling_values=0.0, loose=True, invalid_raise=False
-            )
+            cur_rawgrid = np.loadtxt(file_path, skiprows=6, dtype=float, delimiter=None)
 
             cur_croppedrain = cur_rawgrid[start_row:end_row, start_col:end_col]
-            # Flatten the cropped rain data into a 1D array
-            cur_rainrow = cur_croppedrain.flatten()
-            rainfile.append(cur_rainrow[2]/32)
+
+            rainfile.append(cur_croppedrain.flatten()[2] / 32)
 
             # Extract datetime from filename
-            filename = f.split("/")[-1]  # Get just the filename
+            filename = os.path.basename(file_path)  # Get just the filename
             date_str = filename[:8]  # YYYYMMDD
             time_str = filename[8:12]  # HHMM
 
@@ -102,15 +95,16 @@ class GenerateTimeseries:
             parsed_date = datetime.strptime(f"{date_str}{time_str}", "%Y%m%d%H%M")
             datetime_list.append(parsed_date)
 
-        rainfile_arr = np.vstack(rainfile)
-
         # Create DataFrame with datetime index
-        df = pd.DataFrame(rainfile_arr, index=datetime_list)
-        # sort the dataframe into date order 
+        df = pd.DataFrame({"rainfall": rainfile}, index=datetime_list)
+
+        # Sort the dataframe into date order
         sorted_df = df.sort_index()
-        # add headers 
-        header_row = [location[1]]
-        file_name = f"csv_files/{location[0]}_timeseries_data.csv"
-        sorted_df.to_csv(file_name, sep=",", float_format="%1.4f", header=header_row, index_label='datetime')
 
-
+        sorted_df.to_csv(
+            f"csv_files/{location[0]}_timeseries_data.csv",
+            sep=",",
+            float_format="%1.4f",
+            header=[location[1]],
+            index_label="datetime",
+        )
