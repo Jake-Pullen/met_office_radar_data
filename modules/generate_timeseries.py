@@ -45,7 +45,7 @@ class GenerateTimeseries:
         ncols_basin = 2  # hardcoded, likely to change?
 
         cellres_radar = radar_header[4]
-        cellres_basin = basin_header[4]
+        cellres_basin = 1000 # 1km
 
         xp = x0_basin - x0_radar
         yp = y0_basin - y0_radar
