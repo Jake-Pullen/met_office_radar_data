@@ -4,124 +4,113 @@ import glob
 import pandas as pd
 from datetime import datetime
 
-# Configuration
-asc_path = "asc_files/"
-asc_wildcard_file = "*.asc"
-asc_mult_source = asc_path + asc_wildcard_file
 
-def read_ascii_header(ascii_raster_file: str) -> list:
-    """Reads header information from an ASCII DEM
+class GenerateTimeseries:
+    def __init__(self, config):
+        self.config = config
 
-    Args:
-        ascii_raster_file (str): Path to the ASCII raster file
+    def _read_ascii_header(self, ascii_raster_file: str) -> list:
+        """Reads header information from an ASCII DEM
 
-    Returns:
-        list: Header data as a list of floats
-    """
-    with open(ascii_raster_file) as f:
-        header_data = [float(f.__next__().split()[1]) for x in range(6)]
-    return header_data
+        Args:
+            ascii_raster_file (str): Path to the ASCII raster file
 
-
-def calculate_crop_coords(basin_header: list, radar_header: list) -> tuple:
-    """Calculate crop coordinates based on header data
-
-    Args:
-        basin_header (list): Basin header data
-        radar_header (list): Radar header data
-
-    Returns:
-        tuple: (start_col, start_row, end_col, end_row) as integers
-    """
-    y0_radar = radar_header[3]
-    x0_radar = radar_header[2]
-
-    y0_basin = basin_header[3]
-    x0_basin = basin_header[2]
-
-    nrows_radar = radar_header[1]
-
-    nrows_basin = 2  # hardcoded, we always expect 2 rows
-    ncols_basin = 2  # hardcoded, we always expect 2 columns
-
-    cellres_radar = radar_header[4]
-    cellres_basin = basin_header[4]
-
-    xp = x0_basin - x0_radar
-    yp = y0_basin - y0_radar
-
-    xpp = ncols_basin * cellres_basin
-    ypp = nrows_basin * cellres_basin
-
-    start_col = np.floor(xp / cellres_radar)
-    end_col = np.ceil((xpp + xp) / cellres_radar)
-
-    start_row = np.floor(nrows_radar - ((yp + ypp) / cellres_radar))
-    end_row = np.ceil(nrows_radar - (yp / cellres_radar))
-
-    #print(start_col, start_row, end_col, end_row)
-    return int(start_col), int(start_row), int(end_col), int(end_row)
+        Returns:
+            list: Header data as a list of floats
+        """
+        with open(ascii_raster_file) as f:
+            header_data = [float(f.__next__().split()[1]) for x in range(6)]
+        return header_data
 
 
-def extract_cropped_rain_data(location):
-    """Extract cropped rain data and create rainfall timeseries
+    def _calculate_crop_coords(self, basin_header: list, radar_header: list) -> tuple:
+        """Calculate crop coordinates based on header data
 
-    Returns:
-        None
-    """
-    rainfile = []
+        Args:
+            basin_header (list): Basin header data
+            radar_header (list): Radar header data
 
-    # Create datetime list
-    datetime_list = []
-    print(location)
-    for f in glob.iglob(asc_mult_source):
-        # print(f)
-        radar_header = read_ascii_header(f)
-        start_col, start_row, end_col, end_row = calculate_crop_coords(
-            location, radar_header
-        )
+        Returns:
+            tuple: (start_col, start_row, end_col, end_row) as integers
+        """
+        y0_radar = radar_header[3]
+        x0_radar = radar_header[2]
 
-        start_col = int(round(start_col))
-        start_row = int(round(start_row))
-        end_col = int(round(end_col))
-        end_row = int(round(end_row))
+        y0_basin = basin_header[3]
+        x0_basin = basin_header[2]
 
-        cur_rawgrid = np.genfromtxt(
-            f, skip_header=6, filling_values=0.0, loose=True, invalid_raise=False
-        )
+        nrows_radar = radar_header[1]
 
-        cur_croppedrain = cur_rawgrid[start_row:end_row, start_col:end_col]
-        # Flatten the cropped rain data into a 1D array
-        cur_rainrow = cur_croppedrain.flatten()
-        rainfile.append(cur_rainrow)
+        nrows_basin = 2  # hardcoded, likely to change?
+        ncols_basin = 2  # hardcoded, likely to change?
 
-        # Extract datetime from filename
-        filename = f.split("/")[-1]  # Get just the filename
-        # 20240929 0015
-        date_str = filename[:8]  # YYYYMMDD
-        time_str = filename[8:12]  # HHMM
+        cellres_radar = radar_header[4]
+        cellres_basin = basin_header[4]
 
-        # Parse datetime
-        parsed_date = datetime.strptime(f"{date_str}{time_str}", "%Y%m%d%H%M")
-        datetime_list.append(parsed_date)
+        xp = x0_basin - x0_radar
+        yp = y0_basin - y0_radar
 
-    rainfile_arr = np.vstack(rainfile)
+        xpp = ncols_basin * cellres_basin
+        ypp = nrows_basin * cellres_basin
 
-    # Create DataFrame with datetime index
-    df = pd.DataFrame(rainfile_arr, index=datetime_list)
-    # sort the dataframe into date order 
-    sorted_df = df.sort_index()
-    # add headers 
-    header_row = ['rainfall_1', 'rainfall_2', 'rainfall_3', 'rainfall_4']
-    file_name = f"csv_files/{location[0]}_timeseries_data.csv"
-    sorted_df.to_csv(file_name, sep=",", float_format="%1.4f", header=header_row, index_label='datetime')
+        start_col = np.floor(xp / cellres_radar)
+        end_col = np.ceil((xpp + xp) / cellres_radar)
+
+        start_row = np.floor(nrows_radar - ((yp + ypp) / cellres_radar))
+        end_row = np.ceil(nrows_radar - (yp / cellres_radar))
+
+        #print(start_col, start_row, end_col, end_row)
+        return int(start_col), int(start_row), int(end_col), int(end_row)
 
 
-if __name__ == "__main__":
-    locations = [
-        # loc name, loc id, x loc,   y loc,  resolution
-        ["BRICSC", "TM0816", 608500, 216500, 1000],  
-        ["HEACSC", "TF6842", 568500, 342500, 1000], 
-    ]
-    for place in locations:
-        extract_cropped_rain_data(place)
+    def extract_cropped_rain_data(self, location):
+        """Extract cropped rain data and create rainfall timeseries
+
+        Returns:
+            None
+        """
+        rainfile = []
+        datetime_list = []
+
+        for f in glob.iglob(f'{self.config.ASC_TOP_FOLDER}/*.asc'):
+            # print(f)
+            radar_header = self._read_ascii_header(f)
+            start_col, start_row, end_col, end_row = self._calculate_crop_coords(
+                location, radar_header
+            )
+
+            start_col = int(round(start_col))
+            start_row = int(round(start_row))
+            end_col = int(round(end_col))
+            end_row = int(round(end_row))
+
+            cur_rawgrid = np.genfromtxt(
+                f, skip_header=6, filling_values=0.0, loose=True, invalid_raise=False
+            )
+
+            cur_croppedrain = cur_rawgrid[start_row:end_row, start_col:end_col]
+            # Flatten the cropped rain data into a 1D array
+            cur_rainrow = cur_croppedrain.flatten()
+            rainfile.append(cur_rainrow[2]/32)
+
+            # Extract datetime from filename
+            filename = f.split("/")[-1]  # Get just the filename
+            date_str = filename[:8]  # YYYYMMDD
+            time_str = filename[8:12]  # HHMM
+
+            # Parse datetime
+            parsed_date = datetime.strptime(f"{date_str}{time_str}", "%Y%m%d%H%M")
+            datetime_list.append(parsed_date)
+
+        rainfile_arr = np.vstack(rainfile)
+
+        # Create DataFrame with datetime index
+        df = pd.DataFrame(rainfile_arr, index=datetime_list)
+        # sort the dataframe into date order 
+        sorted_df = df.sort_index()
+        # add headers 
+        header_row = [location[1]]
+        file_name = f"csv_files/{location[0]}_timeseries_data.csv"
+        sorted_df.to_csv(file_name, sep=",", float_format="%1.4f", header=header_row, index_label='datetime')
+
+

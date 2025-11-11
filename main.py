@@ -1,46 +1,48 @@
 import logging
-import yaml
+import time
+import os
+from pathlib import Path
 
-CONFIG_FILE = "config.yaml"
+from config import Config
+from modules import BatchNimrod, GenerateTimeseries
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-def load_config() -> dict:
-    """
-    Load configuration from YAML file.
+if __name__ == "__main__":
+    os.makedirs(Path(Config.ASC_TOP_FOLDER), exist_ok=True)
+    os.makedirs(Path(Config.CSV_TOP_FOLDER), exist_ok=True)
+    dat_file_count = [f for f in os.listdir(Path(Config.DAT_TOP_FOLDER))]
+    asc_file_count = [f for f in os.listdir(Path(Config.ASC_TOP_FOLDER))]
 
-    Returns:
-        dict: Configuration dictionary containing bounding box information.
+    locations = [
+        # loc name, loc id, x loc,   y loc,  resolution
+        ["BRICSC", "TM0816", 608500, 216500, 1000],  
+        ["HEACSC", "TF6842", 568500, 342500, 1000], 
+    ]
 
-    Raises:
-        FileNotFoundError: If the config.yaml file is not found.
-        yaml.YAMLError: If there's an error parsing the YAML file.
-    """
-    try:
-        with open(CONFIG_FILE, "r") as file:
-            config = yaml.safe_load(file)
-            return config.get("bounding_box_info", {})
-    except FileNotFoundError:
-        logging.error(
-            f"Config file {CONFIG_FILE} not found. Using default configuration."
-        )
-        return {}
-    except yaml.YAMLError as e:
-        logging.error(f"Error parsing YAML file: {e}")
-        return {}
+    batch = BatchNimrod(Config)
+    timeseries = GenerateTimeseries(Config)
+
+    start = time.time()
+    logging.info("Starting to process DAT to ASC")
+    if dat_file_count != asc_file_count:
+        batch.process_nimrod_files()
+        batch_checkpoint = time.time()
+        elapsed_time = batch_checkpoint - start
+        logging.info(f"DAT to ASC completed in {elapsed_time:.2f} seconds")
+    else:
+        logging.info("No need to process DAT files, skipping...")
+        time.sleep(1)
+
+    for place in locations:
+        logging.info(f'{place[0]} started generating timeseries data.')
+        timeseries.extract_cropped_rain_data(place)
+        place_checkpoint = time.time()
+        since_asc_create = place_checkpoint - batch_checkpoint
+        elapsed_time = place_checkpoint - start
+        logging.info(f"{place[0]} completed in {since_asc_create:.2f} seconds")
+        logging.info(f'total time so far {elapsed_time:.2f} seconds')
     
-
-os.makedirs(Path(OUT_TOP_FOLDER), exist_ok=True)
-os.makedirs(Path(CSV_TOP_FOLDER), exist_ok=True)
-
-
-
-
-# if __name__ == "__main__":
-#     start = time.time()
-#     process_nimrod_files()
-#     end = time.time()
-#     elapsed_time = end - start
-#     logging.info(f"Processing completed in {elapsed_time:.2f} seconds")
+    logging.info(f'All Complete')

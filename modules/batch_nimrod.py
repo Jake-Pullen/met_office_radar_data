@@ -13,22 +13,22 @@ class BatchNimrod():
         Process all Nimrod files in the input directory, applying bounding box clipping
         and exporting to ASC format.
 
-        This function reads all files from IN_TOP_FOLDER, applies the appropriate bounding
+        This function reads all files from DAT_TOP_FOLDER, applies the appropriate bounding
         box for each area, and exports clipped raster data to OUT_TOP_FOLDER.
         """
         # Read all file names in the folder
-        files_to_process = [f for f in os.listdir(Path(self.config.IN_TOP_FOLDER))]
+        files_to_process = [f for f in os.listdir(Path(self.config.DAT_TOP_FOLDER))]
 
         logging.info(f"Processing {len(files_to_process)} files...")
 
-        for in_file in os.listdir(Path(self.config.IN_TOP_FOLDER)):
-            in_file_full = Path(self.config.IN_TOP_FOLDER, in_file)
+        for in_file in os.listdir(Path(self.config.DAT_TOP_FOLDER)):
+            in_file_full = Path(self.config.DAT_TOP_FOLDER, in_file)
 
             try:
                 image = Nimrod(open(in_file_full, "rb"))
 
                 out_file_name = f"{image.get_validity_time()}.asc"
-                out_file_path = Path(self.config.OUT_TOP_FOLDER, out_file_name)
+                out_file_path = Path(self.config.ASC_TOP_FOLDER, out_file_name)
 
                 with open(out_file_path, "w") as outfile:
                     image.extract_asc(outfile)

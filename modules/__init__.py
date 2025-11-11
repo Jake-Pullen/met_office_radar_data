@@ -1,2 +1,3 @@
 from .nimrod import Nimrod
-from .batch_nimrod import process_nimrod_files
+from .batch_nimrod import BatchNimrod
+from .generate_timeseries import GenerateTimeseries
