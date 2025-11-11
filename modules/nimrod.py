@@ -265,6 +265,21 @@ class Nimrod:
         check_record_len(infile, array_size * 2, "data end")
         infile.close()
 
+    def get_validity_time(self) -> str:
+        """
+        Extract validity time from NIMROD file header and format as string.
+
+        Returns:
+            str: Validity time formatted as 'YYYYMMDDHHMM'
+        """
+        return "%4.4d%2.2d%2.2d%2.2d%2.2d" % (
+            self.hdr_element[1],
+            self.hdr_element[2],
+            self.hdr_element[3],
+            self.hdr_element[4],
+            self.hdr_element[5],
+        )
+
     def query(self) -> None:
         """
         Print complete NIMROD file header information.
