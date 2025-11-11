@@ -32,6 +32,9 @@ class BatchNimrod():
 
                 with open(out_file_path, "w") as outfile:
                     image.extract_asc(outfile)
+                
+                # delete dat file here
+
                 logging.debug(f"Successfully processed: {in_file_full}")
 
             except Nimrod.HeaderReadError as e:

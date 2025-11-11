@@ -29,9 +29,9 @@ if __name__ == "__main__":
 
     start = time.time()
     logging.info("Starting to process DAT to ASC")
+    batch_checkpoint = time.time()
     if dat_file_count != asc_file_count:
         batch.process_nimrod_files()
-        batch_checkpoint = time.time()
         elapsed_time = batch_checkpoint - start
         logging.info(f"DAT to ASC completed in {elapsed_time:.2f} seconds")
     else:
@@ -47,7 +47,10 @@ if __name__ == "__main__":
         logging.info(f"{place[0]} completed in {since_asc_create:.2f} seconds")
         logging.info(f'total time so far {elapsed_time:.2f} seconds')
 
+    logging.info('combining CSVs into groups')
     combiner.combine_csv_files()
-    
-    
-    logging.info(f'All Complete')
+    logging.info('CSVs combined!')
+    end = time.time()
+    elapsed_time = end - start
+
+    logging.info(f'All Complete total time {elapsed_time:.2f} seconds')

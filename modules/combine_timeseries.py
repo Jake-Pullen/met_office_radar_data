@@ -19,7 +19,6 @@ class CombineTimeseries:
     
     def combine_csv_files(self):
         for group, loc_list in self.grouped_locations.items():
-            print(f"Group {group}:")
             combined_df = None
             for loc in loc_list:
                 csv_to_load = f'./csv_files/{loc[0]}_timeseries_data.csv'
