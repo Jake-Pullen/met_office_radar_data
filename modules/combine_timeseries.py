@@ -1,4 +1,4 @@
-import pandas as pd
+import polars as pd
 
 
 class CombineTimeseries:
@@ -10,7 +10,7 @@ class CombineTimeseries:
 
     def build_location_groups(self):
         for location in self.locations:
-            group = location[4]  # output group is at index 4
+            group = location[3]  # zone number
             if group not in self.grouped_locations:
                 self.grouped_locations[group] = []
             self.grouped_locations[group].append(location)
@@ -20,12 +20,12 @@ class CombineTimeseries:
             combined_df = None
             for loc in loc_list:
                 csv_to_load = f"./csv_files/{loc[0]}_timeseries_data.csv"
-                df = pd.read_csv(csv_to_load, index_col=0)
+                df = pd.read_csv(csv_to_load)
                 if combined_df is None:
                     combined_df = df
                 else:
-                    combined_df = combined_df.join(df, how="inner")
+                    combined_df = combined_df.join(df, on='datetime')
             output_file = (
-                f"{self.config.COMBINED_FOLDER}/group_{group}_timeseries_data.csv"
+                f"{self.config.COMBINED_FOLDER}/zone_{group}_timeseries_data.csv"
             )
-            combined_df.to_csv(output_file)
+            combined_df.write_csv(output_file)

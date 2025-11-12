@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 import numpy as np
 from pathlib import Path
-import pandas as pd
+import polars as pd
 from datetime import datetime
 import os
 
@@ -36,8 +36,8 @@ class GenerateTimeseries:
         y0_radar = radar_header[3]
         x0_radar = radar_header[2]
 
-        y0_basin = basin_header[3]
-        x0_basin = basin_header[2]
+        y0_basin = basin_header[2]
+        x0_basin = basin_header[1]
 
         nrows_radar = radar_header[1]
 
@@ -96,15 +96,17 @@ class GenerateTimeseries:
             datetime_list.append(parsed_date)
 
         # Create DataFrame with datetime index
-        df = pd.DataFrame({"rainfall": rainfile}, index=datetime_list)
+        df = pd.DataFrame({"datetime": datetime_list, location[0]: rainfile})
 
         # Sort the dataframe into date order
-        sorted_df = df.sort_index()
+        sorted_df = df.sort("datetime")
 
-        sorted_df.to_csv(
+        # Set datetime as index
+        sorted_df = sorted_df.with_columns(
+            pd.Series(datetime_list).alias("datetime")
+        ).set_sorted("datetime")
+
+        sorted_df.write_csv(
             f"csv_files/{location[0]}_timeseries_data.csv",
-            sep=",",
-            float_format="%1.4f",
-            header=[location[1]],
-            index_label="datetime",
+            float_precision=4
         )

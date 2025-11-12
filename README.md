@@ -1,90 +1,86 @@
 # UK Met Office Rain Radar NIMROD Data Processor
 
-This project provides tools for processing UK Met Office Rain Radar NIMROD image files. It allows extraction of raster data from NIMROD format files and conversion to ESRI ASCII (.asc) format with optional bounding box clipping.
+This project provides tools for processing UK Met Office Rain Radar NIMROD image files. It allows extraction of raster data from NIMROD .dat format files and conversion to ESRI ASCII (.asc) format with optional bounding box clipping.
 
 ## Overview
 
-The project consists of two main Python modules:
-- `nimrod.py`: Core library for parsing NIMROD files, extracting metadata, and converting to ASCII format
-- `batch_nimrod.py`: Script for batch processing multiple NIMROD files with configurable bounding boxes
+The project consists of a main pipeline workflow that processes multiple modules in sequence:
+- `main.py`: Main pipeline orchestrator that calls on the modules as needed
+- `batch_nimrod.py`: Module for batch processing multiple NIMROD files with configurable bounding boxes
+- `generate_timeseries.py`: Module for extracting cropped rain data and creating rainfall timeseries
+- `combine_timeseries.py`: Module for combining grouped timeseries CSVs into consolidated datasets
 
 ## Features
 
-### nimrod.py
-- Parse NIMROD format files (v1.7 and v2.6-4)
-- Extract header information and metadata
-- Convert raster data to ESRI ASCII (.asc) format
-- Apply bounding box clipping to extract specific regions
-- Support for command-line usage or import as module
+### main.py
+- Orchestrates the entire workflow pipeline
+- Processes DAT files to ASC format
+- Generates timeseries data for specified locations
+- Combines grouped CSV files into consolidated datasets
 
 ### batch_nimrod.py
-- Process multiple NIMROD files in batches
-- Apply configurable bounding boxes per area
-- Automatically extract datetime from filenames
+- Process multiple NIMROD dat files
+- Automatically extract datetime from file data
 - Export clipped raster data to ASC format
+
+### generate_timeseries.py
+- Extract cropped rain data based on specified locations
+- Create rainfall timeseries CSVs for each location
+- Parse datetime from filename and create proper datetime index
+
+### combine_timeseries.py
+- Combine multiple timeseries CSV files into grouped datasets
+- Group locations by specified output groups
+- Create consolidated CSV files for each group
 
 ## Usage
 
-### Command Line (nimrod_3.py)
-```bash
-python nimrod.py [-h] [-q] [-x] [-bbox XMIN XMAX YMIN YMAX] [infile] [outfile]
-```
-
-Options:
-- `-h, --help`: Show help message
-- `-q, --query`: Display metadata
-- `-x, --extract`: Extract raster file in ASC format
-- `-bbox XMIN XMAX YMIN YMAX`: Bounding box to clip raster data to
-
-### Python Example Module Usage (nimrod.py)
-```python
-from nimrod import Nimrod
-# Open the .dat or nimrod compliant file
-a = Nimrod(open('filename.dat'))
-# Show the information about the file
-a.query()
-# output the .asc file
-a.extract_asc(open('output.asc', 'w'))
-# shrink the file down to a box area
-a.apply_bbox(279906, 285444, 283130, 290440)
-# show the shrunken down information about the file 
-a.query()
-# output the shrunken down .asc file
-a.extract_asc(open('clipped_output.asc', 'w'))
-```
-
-### Batch Processing (batch_nimrod.py)
 It is recommended to use UV for environment and package handling.
 [Link to uv install](https://docs.astral.sh/uv/getting-started/installation/)
 
+
+### Main Pipeline (main.py)
 ```bash
-uv sync 
-uv run batch_nimrod.py
+uv run main.py
 ```
+
+The main pipeline will:
+1. Process DAT files to ASC format if needed
+2. Generate timeseries data for specified locations
+3. Combine grouped CSV files into consolidated datasets
 
 ## Configuration
 
-The `config.yaml` file defines bounding box information for different areas. Default configuration includes:
-- BRISCS: (607000, 608000, 217000, 218000)
-- WINTSC: (499000, 500000, 416000, 417000)
+The `config.py` file defines folder paths:
+- DAT_TOP_FOLDER: "./dat_files"
+- ASC_TOP_FOLDER: "./asc_files"
+- CSV_TOP_FOLDER: "./csv_files"
+- COMBINED_FOLDER: "./combined_files"
+
+The `main.py` script defines locations and their properties:
+- Location name (e.g., "BRICSC")
+- Location ID (e.g., "TM0816")
+- X coordinate (e.g., 608500)
+- Y coordinate (e.g., 216500)
+- Output group (e.g., 1)
 
 ## Directory Structure
 
-Inside the dat_files folder, each site short code should be its own folder with the .dat files inside of them.  
-The site short code folder name should match EXACTLY to the config site short code  
-Each dat file should have a datetime in its name in the format of yyyymmddhhmm (e.g: 202405260905 )  
-
 ```
 dat_files/
-├── BRISCS/
-│   └── *.dat files
-└── WINTSC/
-    └── *.dat files
+└──*.dat files
+
 asc_files/
-├── BRISCS/
-│   └── YYYYMMDDHHMM_BRISCS.asc files
-└── WINTSC/
-    └── YYYYMMDDHHMM_WINTSC.asc files
+└──*.dat files
+
+csv_files/
+├── TQ1234_timeseries_data.csv
+├── ...
+└── TQ5678_timeseries_data.csv
+combined_files/
+├── zone_1_timeseries_data.csv
+├── ...
+└── zone_50_timeseries_data.csv
 ```
 
 ## Requirements
@@ -92,16 +88,14 @@ asc_files/
 - Python 3.12+
 - [UV Installed](https://docs.astral.sh/uv/getting-started/installation/)
 
-## License
+## Acknowledgments 
 
-Copyright (c) 2015 [Richard Thomas](https://github.com/richard-thomas/MetOffice_NIMROD)
+[Richard Thomas - Original Nimrod dat to asc file conversion](https://github.com/richard-thomas/MetOffice_NIMROD)
+[Declan Valters - building the timeseries from the asc files](https://github.com/dvalters/NIMROD-toolbox)
 
-This program is free software: you can redistribute it and/or modify it under the terms of the Artistic License 2.0 as published by the Open Source Initiative.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-## Version update 2025-10-31 👻
+## Version update 2025
 
 Update by Jake Pullen, for the use of Anglian Water.
 Added the batch_nimrod module to convert large amounts of files
-Cleaned up the original code and added docstrings & typehints
+Cleaned up the original codes and added docstrings & typehints
+Added main pipeline workflow that calls on the modules as needed to take the dat files and create grouped timeseries data CSVs

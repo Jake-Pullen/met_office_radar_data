@@ -17,10 +17,10 @@ class BatchNimrod:
         box for each area, and exports clipped raster data to OUT_TOP_FOLDER.
         """
         # Read all file names in the folder
-        files_to_process = [f for f in os.listdir(Path(self.config.DAT_TOP_FOLDER))]
+        files_to_process = len([f for f in os.listdir(Path(self.config.DAT_TOP_FOLDER))])
 
-        logging.info(f"Processing {len(files_to_process)} files...")
-
+        logging.info(f"Processing {files_to_process} files...")
+        file_counter = 0
         for in_file in os.listdir(Path(self.config.DAT_TOP_FOLDER)):
             in_file_full = Path(self.config.DAT_TOP_FOLDER, in_file)
 
@@ -33,9 +33,13 @@ class BatchNimrod:
                 with open(out_file_path, "w") as outfile:
                     image.extract_asc(outfile)
 
-                # delete dat file here
+                if self.config.delete_dat_after_processing:
+                    os.remove(in_file_full)
 
+                file_counter += 1
                 logging.debug(f"Successfully processed: {in_file_full}")
+                if file_counter %10 == 0:
+                    logging.info(f'processed {file_counter} out of {files_to_process} files')
 
             except Nimrod.HeaderReadError as e:
                 logging.error(f"Failed to read file {in_file_full}, is it corrupt?")
