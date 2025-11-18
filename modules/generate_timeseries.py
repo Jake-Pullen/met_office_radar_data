@@ -174,6 +174,11 @@ class GenerateTimeseries:
             # Sort the dataframe into date order
             sorted_df = df.sort("datetime")
             
+            # Format datetime column
+            sorted_df = sorted_df.with_columns(
+                pd.col("datetime").dt.strftime("%Y-%m-%d %H:%M:%S")
+            )
+
             output_path = Path(self.config.CSV_TOP_FOLDER) / f"{zone_id}_timeseries_data.csv"
             sorted_df.write_csv(
                 output_path,
