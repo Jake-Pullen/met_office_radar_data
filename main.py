@@ -31,9 +31,9 @@ if __name__ == "__main__":
                 
                 locations.append([zone_id, easting, northing, zone])
 
-    # testing locations, can be removed.
-    locations.append(["TM0816", 608500, 216500, 1])
-    locations.append(["TF6842", 568500, 342500, 1])
+    # # testing locations, can be removed.
+    # locations.append(["TM0816", 608500, 216500, 1])
+    # locations.append(["TF6842", 568500, 342500, 1])
 
     batch = BatchNimrod(Config)
     timeseries = GenerateTimeseries(Config)
