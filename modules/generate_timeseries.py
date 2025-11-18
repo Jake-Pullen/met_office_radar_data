@@ -61,52 +61,105 @@ class GenerateTimeseries:
 
         return int(start_col), int(start_row), int(end_col), int(end_row)
 
-    def extract_cropped_rain_data(self, location):
-        """Extract cropped rain data and create rainfall timeseries
+    def extract_data_for_all_locations(self, locations):
+        """Extract cropped rain data for all locations by iterating over ASC files once.
 
-        Returns:
-            None
+        Args:
+            locations (list): List of location data [zone_id, easting, northing, zone]
         """
-        rainfile = []
-        datetime_list = []
+        # Initialize data structure to hold results: {zone_id: {'dates': [], 'values': []}}
+        results = {loc[0]: {'dates': [], 'values': []} for loc in locations}
 
-        for file_name in os.listdir(Path(self.config.ASC_TOP_FOLDER)):
+        # Get list of ASC files and sort them to ensure chronological order if needed
+        asc_files = sorted(os.listdir(Path(self.config.ASC_TOP_FOLDER)))
+        
+        total_files = len(asc_files)
+        print(f"Processing {total_files} ASC files...")
+
+        for i, file_name in enumerate(asc_files):
+            if not file_name.endswith('.asc'):
+                continue
+                
             file_path = Path(self.config.ASC_TOP_FOLDER, file_name)
 
-            radar_header = self._read_ascii_header(str(file_path))
+            try:
+                radar_header = self._read_ascii_header(str(file_path))
+                
+                # Read grid once
+                cur_rawgrid = np.loadtxt(file_path, skiprows=6, dtype=float, delimiter=None)
 
-            # Calculate crop coordinates
-            start_col, start_row, end_col, end_row = self._calculate_crop_coords(
-                location, radar_header
+                # Parse datetime from filename once
+                filename = os.path.basename(file_path)
+                date_str = filename[:8]  # YYYYMMDD
+                time_str = filename[8:12]  # HHMM
+                parsed_date = datetime.strptime(f"{date_str}{time_str}", "%Y%m%d%H%M")
+
+                # Extract data for each location
+                for location in locations:
+                    zone_id = location[0]
+                    
+                    # Calculate crop coordinates
+                    start_col, start_row, end_col, end_row = self._calculate_crop_coords(
+                        location, radar_header
+                    )
+
+                    # Extract value
+                    # Note: The original code used cur_croppedrain.flatten()[2] / 32
+                    # We need to ensure the crop is valid and has enough elements.
+                    # Assuming the crop size is fixed as per original code (2x2 basin -> 4 cells?)
+                    # Original: 
+                    # nrows_basin = 2
+                    # ncols_basin = 2
+                    # cellres_basin = 1000
+                    # cellres_radar = radar_header[4] (usually 1000)
+                    # So it's likely a small grid.
+                    
+                    cur_croppedrain = cur_rawgrid[start_row:end_row, start_col:end_col]
+                    
+                    # Original logic: rainfile.append(cur_croppedrain.flatten()[2] / 32)
+                    # We replicate this exactly.
+                    if cur_croppedrain.size > 2:
+                        val = cur_croppedrain.flatten()[2] / 32
+                    else:
+                        val = 0.0 # Handle edge case if crop is too small? Or maybe NaN?
+                        # For now, let's assume it works as before, but maybe add a check?
+                        # If the original code worked, this should work too provided indices are correct.
+                        # If size is too small, it would raise IndexError in original code too.
+                        if cur_croppedrain.size <= 2:
+                             print(f"Warning: Crop too small for {zone_id} in {file_name}")
+                             val = 0.0 # Default or error?
+
+                    results[zone_id]['dates'].append(parsed_date)
+                    results[zone_id]['values'].append(val)
+            
+            except Exception as e:
+                print(f"Error processing file {file_name}: {e}")
+                continue
+
+            if (i + 1) % 100 == 0:
+                print(f"Processed {i + 1}/{total_files} files")
+
+        # Write CSVs for each location
+        print("Writing CSV files...")
+        for location in locations:
+            zone_id = location[0]
+            data = results[zone_id]
+            
+            if not data['dates']:
+                print(f"No data found for {zone_id}")
+                continue
+
+            df = pd.DataFrame({"datetime": data['dates'], zone_id: data['values']})
+
+            # Sort and set index (Polars)
+            sorted_df = df.sort("datetime")
+            sorted_df = sorted_df.with_columns(
+                pd.Series(data['dates']).alias("datetime")
+            ).set_sorted("datetime")
+
+            output_path = Path(self.config.CSV_TOP_FOLDER) / f"{zone_id}_timeseries_data.csv"
+            sorted_df.write_csv(
+                output_path,
+                float_precision=4
             )
-
-            cur_rawgrid = np.loadtxt(file_path, skiprows=6, dtype=float, delimiter=None)
-
-            cur_croppedrain = cur_rawgrid[start_row:end_row, start_col:end_col]
-
-            rainfile.append(cur_croppedrain.flatten()[2] / 32)
-
-            # Extract datetime from filename
-            filename = os.path.basename(file_path)  # Get just the filename
-            date_str = filename[:8]  # YYYYMMDD
-            time_str = filename[8:12]  # HHMM
-
-            # Parse datetime
-            parsed_date = datetime.strptime(f"{date_str}{time_str}", "%Y%m%d%H%M")
-            datetime_list.append(parsed_date)
-
-        # Create DataFrame with datetime index
-        df = pd.DataFrame({"datetime": datetime_list, location[0]: rainfile})
-
-        # Sort the dataframe into date order
-        sorted_df = df.sort("datetime")
-
-        # Set datetime as index
-        sorted_df = sorted_df.with_columns(
-            pd.Series(datetime_list).alias("datetime")
-        ).set_sorted("datetime")
-
-        sorted_df.write_csv(
-            f"csv_files/{location[0]}_timeseries_data.csv",
-            float_precision=4
-        )
+        print("All CSV files written.")

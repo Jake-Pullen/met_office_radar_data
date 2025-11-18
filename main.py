@@ -47,15 +47,14 @@ if __name__ == "__main__":
     elapsed_time = batch_checkpoint - start
     logging.info(f"DAT to ASC completed in {elapsed_time:.2f} seconds")
 
-    for place in locations:
-        logging.info(f"{place[0]} started generating timeseries data.")
-        place_start = time.time()
-        timeseries.extract_cropped_rain_data(place)
-        place_end = time.time()
-        place_create_time = place_end - place_start
-        elapsed_time = place_end - start
-        logging.info(f"{place[0]} completed in {place_create_time:.2f} seconds")
-        logging.info(f"Total time so far {elapsed_time:.2f} seconds")
+    logging.info("Starting generating timeseries data for all locations.")
+    place_start = time.time()
+    timeseries.extract_data_for_all_locations(locations)
+    place_end = time.time()
+    place_create_time = place_end - place_start
+    elapsed_time = place_end - start
+    logging.info(f"Timeseries generation completed in {place_create_time:.2f} seconds")
+    logging.info(f"Total time so far {elapsed_time:.2f} seconds")
 
     logging.info("combining CSVs into groups")
     combiner.combine_csv_files()
