@@ -1,4 +1,5 @@
 import polars as pd
+import os
 
 
 class CombineTimeseries:
@@ -25,7 +26,12 @@ class CombineTimeseries:
                     combined_df = df
                 else:
                     combined_df = combined_df.join(df, on='datetime')
+
+                if self.config.delete_csv_after_combining:
+                    os.remove(csv_to_load)
+
             output_file = (
                 f"{self.config.COMBINED_FOLDER}/zone_{group}_timeseries_data.csv"
             )
-            combined_df.write_csv(output_file)
+            sorted_df = combined_df.sort('datetime')
+            sorted_df.write_csv(output_file)

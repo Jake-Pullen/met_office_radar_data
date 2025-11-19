@@ -116,7 +116,12 @@ class GenerateTimeseries:
                     'date': parsed_date,
                     'value': val
                 })
+
+            if self.config.delete_asc_after_processing:
+                os.remove(file_path)
+
             return results
+        
 
         except Exception as e:
             print(f"Error processing file {file_name}: {e}")

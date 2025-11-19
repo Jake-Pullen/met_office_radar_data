@@ -6,3 +6,5 @@ class Config:
     ZONE_FOLDER = "./zone_inputs"
 
     delete_dat_after_processing = False
+    delete_asc_after_processing = True
+    delete_csv_after_combining = True

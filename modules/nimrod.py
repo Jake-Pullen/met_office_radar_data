@@ -444,7 +444,6 @@ class Nimrod:
 # (And as an example of how to invoke class methods from an importing module)
 # -------------------------------------------------------------------------------
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Extract information and data from a NIMROD format file",

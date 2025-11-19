@@ -28,7 +28,7 @@ if __name__ == "__main__":
                 easting = int(row[2])  # Easting column
                 northing = int(row[3])  # Northing column
                 zone = int(row[6])  # ZoneID column
-                
+
                 locations.append([zone_id, easting, northing, zone])
 
     # # testing locations, can be removed.
