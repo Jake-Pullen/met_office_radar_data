@@ -68,6 +68,7 @@ import struct
 import array
 import argparse
 from typing import IO
+import numpy as np
 
 
 class Nimrod:
@@ -89,7 +90,7 @@ class Nimrod:
         x_pixel_size (float): Size of pixel in x-direction
         x_right (float): Right easting coordinate
         y_bottom (float): Bottom northing coordinate
-        data (array.array): Raster data array
+        data (np.ndarray): Raster data array
     """
 
     class RecordLenError(Exception):
@@ -253,11 +254,16 @@ class Nimrod:
         array_size = self.ncols * self.nrows
         check_record_len(infile, array_size * 2, "data start")
 
-        self.data = array.array("h")
         try:
-            data = infile.read(array_size * 2)
-            self.data.frombytes(data)
-            self.data.byteswap()
+            # Read data as big-endian 16-bit integers
+            # numpy.frombuffer is efficient for reading from bytes
+            data_bytes = infile.read(array_size * 2)
+            self.data = np.frombuffer(data_bytes, dtype='>h').astype(np.int16)
+            
+            # Reshape to (nrows, ncols) for easier 2D manipulation
+            # Note: NIMROD data is row-major (C-style), starting from top-left
+            self.data = self.data.reshape((self.nrows, self.ncols))
+            
         except Exception:
             infile.close()
             raise Nimrod.PayloadReadError
@@ -383,16 +389,12 @@ class Nimrod:
         yMinPixelId = int((self.y_top - ymax) / self.y_pixel_size + 0.5)
         yMaxPixelId = int((self.y_top - ymin) / self.y_pixel_size + 0.5)
 
-        bbox_data = []
-        for i in range(yMinPixelId, yMaxPixelId + 1):
-            bbox_data.extend(
-                self.data[
-                    i * self.ncols + xMinPixelId : i * self.ncols + xMaxPixelId + 1
-                ]
-            )
+        # Use numpy slicing to extract the sub-array
+        # Note: y indices correspond to rows, x indices to columns
+        # Slicing is [start:end], so we need +1 for the end index
+        self.data = self.data[yMinPixelId : yMaxPixelId + 1, xMinPixelId : xMaxPixelId + 1]
 
         # Update object where necessary
-        self.data = bbox_data
         self.x_right = self.x_left + xMaxPixelId * self.x_pixel_size
         self.x_left += xMinPixelId * self.x_pixel_size
         self.ncols = xMaxPixelId - xMinPixelId + 1
@@ -431,11 +433,9 @@ class Nimrod:
         outfile.write("cellsize       %.1f\n" % self.y_pixel_size)
         outfile.write("nodata_value  %.1f\n" % self.hdr_element[38])
 
-        # Write raster data to output file
-        for i in range(self.nrows):
-            for j in range(self.ncols - 1):
-                outfile.write("%d " % self.data[i * self.ncols + j])
-            outfile.write("%d\n" % self.data[i * self.ncols + self.ncols - 1])
+        # Write raster data to output file using numpy.savetxt
+        # This is significantly faster than iterating in Python
+        np.savetxt(outfile, self.data, fmt='%d', delimiter=' ')
         outfile.close()
 
 

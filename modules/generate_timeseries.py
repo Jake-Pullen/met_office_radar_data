@@ -4,6 +4,8 @@ from pathlib import Path
 import polars as pd
 from datetime import datetime
 import os
+import concurrent.futures
+
 
 
 class GenerateTimeseries:
@@ -61,52 +63,125 @@ class GenerateTimeseries:
 
         return int(start_col), int(start_row), int(end_col), int(end_row)
 
-    def extract_cropped_rain_data(self, location):
-        """Extract cropped rain data and create rainfall timeseries
-
+    def _process_single_file(self, file_name, locations):
+        """Process a single ASC file and extract data for all locations.
+        
+        Args:
+            file_name (str): Name of the ASC file.
+            locations (list): List of locations.
+            
         Returns:
-            None
+            list: A list of dictionaries containing extracted data for each location, 
+                  or None if processing fails.
+                  Format: [{'zone_id': id, 'date': datetime, 'value': float}, ...]
         """
-        rainfile = []
-        datetime_list = []
+        if not file_name.endswith('.asc'):
+            return None
 
-        for file_name in os.listdir(Path(self.config.ASC_TOP_FOLDER)):
-            file_path = Path(self.config.ASC_TOP_FOLDER, file_name)
+        file_path = Path(self.config.ASC_TOP_FOLDER, file_name)
+        results = []
 
+        try:
             radar_header = self._read_ascii_header(str(file_path))
-
-            # Calculate crop coordinates
-            start_col, start_row, end_col, end_row = self._calculate_crop_coords(
-                location, radar_header
-            )
-
+            
+            # Read grid once
             cur_rawgrid = np.loadtxt(file_path, skiprows=6, dtype=float, delimiter=None)
 
-            cur_croppedrain = cur_rawgrid[start_row:end_row, start_col:end_col]
-
-            rainfile.append(cur_croppedrain.flatten()[2] / 32)
-
-            # Extract datetime from filename
-            filename = os.path.basename(file_path)  # Get just the filename
+            # Parse datetime from filename once
+            filename = os.path.basename(file_path)
             date_str = filename[:8]  # YYYYMMDD
             time_str = filename[8:12]  # HHMM
-
-            # Parse datetime
             parsed_date = datetime.strptime(f"{date_str}{time_str}", "%Y%m%d%H%M")
-            datetime_list.append(parsed_date)
 
-        # Create DataFrame with datetime index
-        df = pd.DataFrame({"datetime": datetime_list, location[0]: rainfile})
+            # Extract data for each location
+            for location in locations:
+                zone_id = location[0]
+                
+                # Calculate crop coordinates
+                start_col, start_row, end_col, end_row = self._calculate_crop_coords(
+                    location, radar_header
+                )
 
-        # Sort the dataframe into date order
-        sorted_df = df.sort("datetime")
+                cur_croppedrain = cur_rawgrid[start_row:end_row, start_col:end_col]
+                
+                if cur_croppedrain.size > 2:
+                    val = cur_croppedrain.flatten()[2] / 32
+                else:
+                    # Handle edge case
+                    # print(f"Warning: Crop too small for {zone_id} in {file_name}")
+                    val = 0.0
 
-        # Set datetime as index
-        sorted_df = sorted_df.with_columns(
-            pd.Series(datetime_list).alias("datetime")
-        ).set_sorted("datetime")
+                results.append({
+                    'zone_id': zone_id,
+                    'date': parsed_date,
+                    'value': val
+                })
+            return results
 
-        sorted_df.write_csv(
-            f"csv_files/{location[0]}_timeseries_data.csv",
-            float_precision=4
-        )
+        except Exception as e:
+            print(f"Error processing file {file_name}: {e}")
+            return None
+
+    def extract_data_for_all_locations(self, locations):
+        """Extract cropped rain data for all locations by iterating over ASC files concurrently.
+
+        Args:
+            locations (list): List of location data [zone_id, easting, northing, zone]
+        """
+        # Initialize data structure to hold results: {zone_id: {'dates': [], 'values': []}}
+        results = {loc[0]: {'dates': [], 'values': []} for loc in locations}
+
+        # Get list of ASC files
+        asc_files = sorted(os.listdir(Path(self.config.ASC_TOP_FOLDER)))
+        total_files = len(asc_files)
+        print(f"Processing {total_files} ASC files concurrently...")
+
+        # Use ThreadPoolExecutor for concurrent processing
+        # Since we are using Python 3.14t (free-threaded), this should scale well even for CPU work
+        # mixed with I/O.
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # Submit all tasks
+            future_to_file = {
+                executor.submit(self._process_single_file, file_name, locations): file_name 
+                for file_name in asc_files
+            }
+            
+            completed_count = 0
+            for future in concurrent.futures.as_completed(future_to_file):
+                file_results = future.result()
+                if file_results:
+                    for res in file_results:
+                        zone_id = res['zone_id']
+                        results[zone_id]['dates'].append(res['date'])
+                        results[zone_id]['values'].append(res['value'])
+                
+                completed_count += 1
+                if completed_count % 100 == 0:
+                    print(f"Processed {completed_count}/{total_files} files")
+
+        # Write CSVs for each location
+        print("Writing CSV files...")
+        for location in locations:
+            zone_id = location[0]
+            data = results[zone_id]
+            
+            if not data['dates']:
+                print(f"No data found for {zone_id}")
+                continue
+
+            df = pd.DataFrame({"datetime": data['dates'], zone_id: data['values']})
+
+            # Sort the dataframe into date order
+            sorted_df = df.sort("datetime")
+            
+            # Format datetime column
+            sorted_df = sorted_df.with_columns(
+                pd.col("datetime").dt.strftime("%Y-%m-%d %H:%M:%S")
+            )
+
+            output_path = Path(self.config.CSV_TOP_FOLDER) / f"{zone_id}_timeseries_data.csv"
+            sorted_df.write_csv(
+                output_path,
+                float_precision=4
+            )
+        print("All CSV files written.")
