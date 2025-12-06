@@ -42,10 +42,13 @@ It is recommended to use UV for environment and package handling.
 
 ## Usage
 
-### Main Pipeline (main.py)
-```bash
-uv run main.py
-```
+1. Ensure all required packages are installed `uv sync`
+1. Adjust the config.py file to match your needs.
+1. Ensure your .dat files are in the DAT_TOP_FOLDER (as per config location)
+1. Ensure your zone csv files are in the ZONE_FOLDER (as per config location)
+1. RunMain Pipeline `uv run main.py
+1. find the output in the COMBINED_FOLDER (as per config location)
+
 
 The main pipeline will:
 1. Process DAT files to ASC format if needed
@@ -60,10 +63,15 @@ The `config.py` file defines folder paths:
 - CSV_TOP_FOLDER: "./csv_files"
 - COMBINED_FOLDER: "./combined_files"
 
+Example of how the zone csv files should look:
+```
+filler, zone_name, easting, northing, other_filler, last_filler, zone_number
+aa, TM0816, 608500, 216500, a, a, 1
+aa, TF6842, 568500, 342500, a, a, 1
+```
+
 ## Acknowledgments 
 
-[Richard Thomas - Original Nimrod dat to asc file conversion](https://github.com/richard-thomas/MetOffice_NIMROD)
-[Declan Valters - building the timeseries from the asc files](https://github.com/dvalters/NIMROD-toolbox)
-
-# Met Office Radar Data
-
+Thank you to the following projects for their inspiration and code:  
+* [Richard Thomas - Original Nimrod dat to asc file conversion](https://github.com/richard-thomas/MetOffice_NIMROD)  
+* [Declan Valters - building the timeseries from the asc files](https://github.com/dvalters/NIMROD-toolbox)

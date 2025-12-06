@@ -28,12 +28,7 @@ if __name__ == "__main__":
                 easting = int(row[2])  # Easting column
                 northing = int(row[3])  # Northing column
                 zone = int(row[6])  # ZoneID column
-
                 locations.append([zone_id, easting, northing, zone])
-
-    # # testing locations, can be removed.
-    # locations.append(["TM0816", 608500, 216500, 1])
-    # locations.append(["TF6842", 568500, 342500, 1])
 
     batch = BatchNimrod(Config)
     timeseries = GenerateTimeseries(Config)
