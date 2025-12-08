@@ -63,7 +63,7 @@ class GenerateTimeseries:
 
         return int(start_col), int(start_row), int(end_col), int(end_row)
 
-    def _process_single_file(self, file_name, locations):
+    def process_asc_file(self, file_name, locations):
         """Process a single ASC file and extract data for all locations.
         
         Args:
@@ -147,7 +147,7 @@ class GenerateTimeseries:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             # Submit all tasks
             future_to_file = {
-                executor.submit(self._process_single_file, file_name, locations): file_name 
+                executor.submit(self.process_asc_file, file_name, locations): file_name 
                 for file_name in asc_files
             }
             
@@ -170,6 +170,13 @@ class GenerateTimeseries:
                 raise
 
         # Write CSVs for each location
+    def write_results_to_csv(self, results, locations):
+        """Write extracted data to CSV files for each location.
+
+        Args:
+            results (dict): Aggregated results {zone_id: {'dates': [], 'values': []}}
+            locations (list): List of location data
+        """
         print("Writing CSV files...")
         for location in locations:
             zone_id = location[0]

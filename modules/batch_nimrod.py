@@ -36,7 +36,7 @@ class BatchNimrod:
                 os.remove(in_file_full)
 
             logging.debug(f"Successfully processed: {in_file_full}")
-            return True
+            return out_file_name
 
         except Nimrod.HeaderReadError as e:
             logging.error(f"Failed to read file {in_file_full}, is it corrupt?")

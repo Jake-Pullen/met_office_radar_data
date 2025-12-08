@@ -2,6 +2,7 @@ import logging
 import time
 import os
 import csv
+import concurrent.futures
 from pathlib import Path
 
 from config import Config
@@ -35,22 +36,57 @@ if __name__ == "__main__":
     combiner = CombineTimeseries(Config, locations)
 
     start = time.time()
-    logging.info("Starting to process DAT to ASC")
+    logging.info("Starting interleaved processing of DAT files and Timeseries generation")
+    
+    # Initialize results structure
+    results = {loc[0]: {'dates': [], 'values': []} for loc in locations}
 
-    batch.process_nimrod_files()
-    batch_checkpoint = time.time()
-    elapsed_time = batch_checkpoint - start
-    logging.info(f"DAT to ASC completed in {elapsed_time:.2f} seconds")
+    def process_pipeline(dat_file):
+        # 1. Process DAT to ASC
+        asc_file = batch._process_single_file(dat_file)
+        if not asc_file:
+            return None
+        
+        # 2. Extract data from ASC
+        file_results = timeseries.process_asc_file(asc_file, locations)
+        return file_results
 
-    logging.info("Starting generating timeseries data for all locations.")
-    place_start = time.time()
-    timeseries.extract_data_for_all_locations(locations)
-    place_end = time.time()
-    place_create_time = place_end - place_start
-    elapsed_time = place_end - start
-    logging.info(f"Timeseries generation completed in {place_create_time:.2f} seconds")
-    logging.info(f"Total time so far {elapsed_time:.2f} seconds")
+    # Get list of DAT files
+    dat_files = [f for f in os.listdir(Path(Config.DAT_TOP_FOLDER)) if not f.startswith('.')]
+    total_files = len(dat_files)
+    
+    logging.info(f"Processing {total_files} files concurrently...")
 
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_to_file = {
+            executor.submit(process_pipeline, dat_file): dat_file 
+            for dat_file in dat_files
+        }
+        
+        completed_count = 0
+        try:
+            for future in concurrent.futures.as_completed(future_to_file):
+                file_results = future.result()
+                if file_results:
+                    for res in file_results:
+                        zone_id = res['zone_id']
+                        results[zone_id]['dates'].append(res['date'])
+                        results[zone_id]['values'].append(res['value'])
+                
+                completed_count += 1
+                if completed_count % 10 == 0:
+                    logging.info(f'Processed {completed_count} out of {total_files} files')
+        except KeyboardInterrupt:
+            logging.warning("KeyboardInterrupt received. Cancelling pending tasks...")
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
+
+    elapsed_time = time.time() - start
+    logging.info(f"Interleaved processing completed in {elapsed_time:.2f} seconds")
+
+    logging.info("Writing CSV files...")
+    timeseries.write_results_to_csv(results, locations)
+    
     logging.info("combining CSVs into groups")
     combiner.combine_csv_files()
     logging.info("CSVs combined!")
