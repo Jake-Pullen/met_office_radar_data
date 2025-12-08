@@ -9,6 +9,7 @@ wheels/
 # Virtual environments
 .venv
 
+dat_other/*
 dat_files/*
 asc_files/*
 csv_files/*
@@ -16,3 +17,5 @@ combined_files/*
 zone_inputs/*
 
 *.tar.gz
+
+generate_test_data.py

@@ -72,8 +72,13 @@ class BatchNimrod:
             }
             
             completed_count = 0
-            for future in concurrent.futures.as_completed(future_to_file):
-                completed_count += 1
-                if completed_count % 10 == 0:
-                    logging.info(f'processed {completed_count} out of {total_files} files')
+            try:
+                for future in concurrent.futures.as_completed(future_to_file):
+                    completed_count += 1
+                    if completed_count % 10 == 0:
+                        logging.info(f'processed {completed_count} out of {total_files} files')
+            except KeyboardInterrupt:
+                logging.warning("KeyboardInterrupt received. Cancelling pending tasks...")
+                executor.shutdown(wait=False, cancel_futures=True)
+                raise
 

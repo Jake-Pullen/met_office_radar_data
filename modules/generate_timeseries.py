@@ -152,17 +152,22 @@ class GenerateTimeseries:
             }
             
             completed_count = 0
-            for future in concurrent.futures.as_completed(future_to_file):
-                file_results = future.result()
-                if file_results:
-                    for res in file_results:
-                        zone_id = res['zone_id']
-                        results[zone_id]['dates'].append(res['date'])
-                        results[zone_id]['values'].append(res['value'])
-                
-                completed_count += 1
-                if completed_count % 100 == 0:
-                    print(f"Processed {completed_count}/{total_files} files")
+            try:
+                for future in concurrent.futures.as_completed(future_to_file):
+                    file_results = future.result()
+                    if file_results:
+                        for res in file_results:
+                            zone_id = res['zone_id']
+                            results[zone_id]['dates'].append(res['date'])
+                            results[zone_id]['values'].append(res['value'])
+                    
+                    completed_count += 1
+                    if completed_count % 100 == 0:
+                        print(f"Processed {completed_count}/{total_files} files")
+            except KeyboardInterrupt:
+                print("KeyboardInterrupt received. Cancelling pending tasks...")
+                executor.shutdown(wait=False, cancel_futures=True)
+                raise
 
         # Write CSVs for each location
         print("Writing CSV files...")
