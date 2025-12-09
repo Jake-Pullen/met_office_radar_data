@@ -51,7 +51,7 @@ It is recommended to use UV for environment and package handling.
 1. Adjust the config.py file to match your needs.
 1. Ensure your .dat files are in the DAT_TOP_FOLDER (as per config location)
 1. Ensure your zone csv files are in the ZONE_FOLDER (as per config location)
-1. RunMain Pipeline `uv run main.py
+1. RunMain Pipeline `uv run main.py` Note that you will have to set your environment variable `PYTHON_GIL=0` first
 1. find the output in the COMBINED_FOLDER (as per config location)
 
 The main pipeline will:

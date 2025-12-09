@@ -5,6 +5,7 @@ import polars as pd
 from datetime import datetime
 import os
 import concurrent.futures
+import logging
 
 
 
@@ -169,7 +170,6 @@ class GenerateTimeseries:
                 executor.shutdown(wait=False, cancel_futures=True)
                 raise
 
-        # Write CSVs for each location
     def write_results_to_csv(self, results, locations):
         """Write extracted data to CSV files for each location.
 
@@ -177,7 +177,6 @@ class GenerateTimeseries:
             results (dict): Aggregated results {zone_id: {'dates': [], 'values': []}}
             locations (list): List of location data
         """
-        print("Writing CSV files...")
         for location in locations:
             zone_id = location[0]
             data = results[zone_id]
@@ -201,4 +200,4 @@ class GenerateTimeseries:
                 output_path,
                 float_precision=4
             )
-        print("All CSV files written.")
+        logging.info("All CSV files written.")

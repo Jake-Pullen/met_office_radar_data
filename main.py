@@ -30,6 +30,7 @@ if __name__ == "__main__":
                 northing = int(row[2])  # Northing column
                 zone = int(row[3])  # ZoneID column
                 locations.append([zone_id, easting, northing, zone])
+    logging.info(f'Count of 1K Grids: {len(locations)}')
 
     batch = BatchNimrod(Config)
     timeseries = GenerateTimeseries(Config)
@@ -79,7 +80,7 @@ if __name__ == "__main__":
                     files_per_minute = (completed_count / elapsed_time) * 60
                     remaining_files = total_files - completed_count
                     eta_minutes = remaining_files / (files_per_minute / 60) / 60
-                    logging.info(f''''Processed {completed_count} out of {total_files} files.
+                    logging.info(f'''Processed {completed_count} out of {total_files} files.
     Speed: {files_per_minute:.2f} files/min. ETA: {eta_minutes:.2f} minutes''')
         except KeyboardInterrupt:
             logging.warning("KeyboardInterrupt received. Cancelling pending tasks...")
@@ -91,7 +92,8 @@ if __name__ == "__main__":
 
     logging.info("Writing CSV files...")
     timeseries.write_results_to_csv(results, locations)
-    
+    results.clear()
+
     logging.info("combining CSVs into groups")
     combiner.combine_csv_files()
     logging.info("CSVs combined!")
