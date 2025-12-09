@@ -4,5 +4,5 @@ class Config:
     COMBINED_FOLDER = "./combined_files"
     ZONE_FOLDER = "./zone_inputs"
 
-    delete_dat_after_processing = True
+    delete_dat_after_processing = False
     delete_asc_after_processing = True

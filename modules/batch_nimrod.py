@@ -5,27 +5,26 @@ import logging
 import concurrent.futures
 
 
-
 class BatchNimrod:
     def __init__(self, config) -> None:
         self.config = config
 
     def _process_single_file(self, in_file):
         """Process a single Nimrod DAT file.
-        
+
         Args:
             in_file (str): Filename of the DAT file.
-            
+
         Returns:
             bool: True if successful, False otherwise.
         """
         in_file_full = Path(self.config.DAT_TOP_FOLDER, in_file)
-        
+
         try:
             # We need to open the file here, inside the thread
             with open(in_file_full, "rb") as f:
                 image = Nimrod(f)
-                
+
                 out_file_name = f"{image.get_validity_time()}.asc"
                 out_file_path = Path(self.config.ASC_TOP_FOLDER, out_file_name)
 
@@ -59,26 +58,33 @@ class BatchNimrod:
         box for each area, and exports clipped raster data to OUT_TOP_FOLDER.
         """
         # Read all file names in the folder
-        files_to_process = [f for f in os.listdir(Path(self.config.DAT_TOP_FOLDER)) if not f.startswith('.')]
+        files_to_process = [
+            f
+            for f in os.listdir(Path(self.config.DAT_TOP_FOLDER))
+            if not f.startswith(".")
+        ]
         total_files = len(files_to_process)
 
         logging.info(f"Processing {total_files} files concurrently...")
-        
+
         with concurrent.futures.ThreadPoolExecutor() as executor:
             # Submit all tasks
             future_to_file = {
-                executor.submit(self._process_single_file, in_file): in_file 
+                executor.submit(self._process_single_file, in_file): in_file
                 for in_file in files_to_process
             }
-            
+
             completed_count = 0
             try:
                 for future in concurrent.futures.as_completed(future_to_file):
                     completed_count += 1
                     if completed_count % 10 == 0:
-                        logging.info(f'processed {completed_count} out of {total_files} files')
+                        logging.info(
+                            f"processed {completed_count} out of {total_files} files"
+                        )
             except KeyboardInterrupt:
-                logging.warning("KeyboardInterrupt received. Cancelling pending tasks...")
+                logging.warning(
+                    "KeyboardInterrupt received. Cancelling pending tasks..."
+                )
                 executor.shutdown(wait=False, cancel_futures=True)
                 raise
-

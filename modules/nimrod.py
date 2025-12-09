@@ -258,12 +258,12 @@ class Nimrod:
             # Read data as big-endian 16-bit integers
             # numpy.frombuffer is efficient for reading from bytes
             data_bytes = infile.read(array_size * 2)
-            self.data = np.frombuffer(data_bytes, dtype='>h').astype(np.int16)
-            
+            self.data = np.frombuffer(data_bytes, dtype=">h").astype(np.int16)
+
             # Reshape to (nrows, ncols) for easier 2D manipulation
             # Note: NIMROD data is row-major (C-style), starting from top-left
             self.data = self.data.reshape((self.nrows, self.ncols))
-            
+
         except Exception:
             infile.close()
             raise Nimrod.PayloadReadError
@@ -392,7 +392,9 @@ class Nimrod:
         # Use numpy slicing to extract the sub-array
         # Note: y indices correspond to rows, x indices to columns
         # Slicing is [start:end], so we need +1 for the end index
-        self.data = self.data[yMinPixelId : yMaxPixelId + 1, xMinPixelId : xMaxPixelId + 1]
+        self.data = self.data[
+            yMinPixelId : yMaxPixelId + 1, xMinPixelId : xMaxPixelId + 1
+        ]
 
         # Update object where necessary
         self.x_right = self.x_left + xMaxPixelId * self.x_pixel_size
@@ -435,7 +437,7 @@ class Nimrod:
 
         # Write raster data to output file using numpy.savetxt
         # This is significantly faster than iterating in Python
-        np.savetxt(outfile, self.data, fmt='%d', delimiter=' ')
+        np.savetxt(outfile, self.data, fmt="%d", delimiter=" ")
         outfile.close()
 
 

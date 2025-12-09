@@ -8,10 +8,10 @@ import concurrent.futures
 import logging
 
 
-
 class GenerateTimeseries:
-    def __init__(self, config):
+    def __init__(self, config, locations):
         self.config = config
+        self.locations = locations
 
     def _read_ascii_header(self, ascii_raster_file: str) -> list:
         """Reads header information from an ASCII DEM
@@ -66,17 +66,17 @@ class GenerateTimeseries:
 
     def process_asc_file(self, file_name, locations):
         """Process a single ASC file and extract data for all locations.
-        
+
         Args:
             file_name (str): Name of the ASC file.
             locations (list): List of locations.
-            
+
         Returns:
-            list: A list of dictionaries containing extracted data for each location, 
+            list: A list of dictionaries containing extracted data for each location,
                   or None if processing fails.
                   Format: [{'zone_id': id, 'date': datetime, 'value': float}, ...]
         """
-        if not file_name.endswith('.asc'):
+        if not file_name.endswith(".asc"):
             return None
 
         file_path = Path(self.config.ASC_TOP_FOLDER, file_name)
@@ -84,7 +84,7 @@ class GenerateTimeseries:
 
         try:
             radar_header = self._read_ascii_header(str(file_path))
-            
+
             # Read grid once
             cur_rawgrid = np.loadtxt(file_path, skiprows=6, dtype=float, delimiter=None)
 
@@ -97,14 +97,14 @@ class GenerateTimeseries:
             # Extract data for each location
             for location in locations:
                 zone_id = location[0]
-                
+
                 # Calculate crop coordinates
                 start_col, start_row, end_col, end_row = self._calculate_crop_coords(
                     location, radar_header
                 )
 
                 cur_croppedrain = cur_rawgrid[start_row:end_row, start_col:end_col]
-                
+
                 if cur_croppedrain.size > 2:
                     val = cur_croppedrain.flatten()[2] / 32
                 else:
@@ -112,17 +112,12 @@ class GenerateTimeseries:
                     # print(f"Warning: Crop too small for {zone_id} in {file_name}")
                     val = 0.0
 
-                results.append({
-                    'zone_id': zone_id,
-                    'date': parsed_date,
-                    'value': val
-                })
+                results.append({"zone_id": zone_id, "date": parsed_date, "value": val})
 
             if self.config.delete_asc_after_processing:
                 os.remove(file_path)
 
             return results
-        
 
         except Exception as e:
             print(f"Error processing file {file_name}: {e}")
@@ -135,7 +130,7 @@ class GenerateTimeseries:
             locations (list): List of location data [zone_id, easting, northing, zone]
         """
         # Initialize data structure to hold results: {zone_id: {'dates': [], 'values': []}}
-        results = {loc[0]: {'dates': [], 'values': []} for loc in locations}
+        results = {loc[0]: {"dates": [], "values": []} for loc in locations}
 
         # Get list of ASC files
         asc_files = sorted(os.listdir(Path(self.config.ASC_TOP_FOLDER)))
@@ -147,20 +142,20 @@ class GenerateTimeseries:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             # Submit all tasks
             future_to_file = {
-                executor.submit(self.process_asc_file, file_name, locations): file_name 
+                executor.submit(self.process_asc_file, file_name, locations): file_name
                 for file_name in asc_files
             }
-            
+
             completed_count = 0
             try:
                 for future in concurrent.futures.as_completed(future_to_file):
                     file_results = future.result()
                     if file_results:
                         for res in file_results:
-                            zone_id = res['zone_id']
-                            results[zone_id]['dates'].append(res['date'])
-                            results[zone_id]['values'].append(res['value'])
-                    
+                            zone_id = res["zone_id"]
+                            results[zone_id]["dates"].append(res["date"])
+                            results[zone_id]["values"].append(res["value"])
+
                     completed_count += 1
                     if completed_count % 100 == 0:
                         print(f"Processed {completed_count}/{total_files} files")
@@ -176,9 +171,6 @@ class GenerateTimeseries:
             results (dict): Aggregated results {zone_id: {'dates': [], 'values': []}}
             locations (list): List of location data [zone_id, easting, northing, zone]
         """
-        # Map zone_id -> zone
-        zone_map = {loc[0]: loc[3] for loc in locations}
-
         # Group results by zone and collect all unique dates
         zone_data = {}
         for loc in locations:
@@ -186,19 +178,19 @@ class GenerateTimeseries:
             zone_name = loc[3]
 
             if zone_name not in zone_data:
-                zone_data[zone_name] = {'dates': [], 'values': {}}
+                zone_data[zone_name] = {"dates": [], "values": {}}
 
-            zone_data[zone_name]['values'][zone_id] = results[zone_id]['values']
-            zone_data[zone_name]['dates'].extend(results[zone_id]['dates'])
+            zone_data[zone_name]["values"][zone_id] = results[zone_id]["values"]
+            zone_data[zone_name]["dates"].extend(results[zone_id]["dates"])
 
         # Get unique sorted dates across all zones
         for zone_name, data in zone_data.items():
-            data['dates'] = sorted(set(data['dates']))
+            data["dates"] = sorted(set(data["dates"]))
 
         # Now write one CSV per zone with aligned timestamps
         for zone_name, data in zone_data.items():
-            dates = data['dates']
-            values_dict = data['values']
+            dates = data["dates"]
+            values_dict = data["values"]
 
             # Create aligned DataFrame
             df_dict = {"datetime": dates}
@@ -235,7 +227,9 @@ class GenerateTimeseries:
                 pd.col("datetime").dt.strftime("%Y-%m-%d %H:%M:%S")
             )
 
-            output_path = Path(self.config.COMBINED_FOLDER) / f"{zone_name}_timeseries_data.csv"
+            output_path = (
+                Path(self.config.COMBINED_FOLDER) / f"{zone_name}_timeseries_data.csv"
+            )
             sorted_df.write_csv(output_path, float_precision=4)
 
         logging.info("All CSV files written.")
