@@ -144,7 +144,6 @@ class GenerateTimeseries:
 
         # Use ThreadPoolExecutor for concurrent processing
         # Since we are using Python 3.14t (free-threaded), this should scale well even for CPU work
-        # mixed with I/O.
         with concurrent.futures.ThreadPoolExecutor() as executor:
             # Submit all tasks
             future_to_file = {
@@ -169,39 +168,6 @@ class GenerateTimeseries:
                 print("KeyboardInterrupt received. Cancelling pending tasks...")
                 executor.shutdown(wait=False, cancel_futures=True)
                 raise
-
-    # def write_results_to_csv(self, results, locations):
-    #     """Write extracted data to CSV files for each location.
-
-    #     Args:
-    #         results (dict): Aggregated results {zone_id: {'dates': [], 'values': []}}
-    #         locations (list): List of location data
-    #     """
-    #     for location in locations:
-    #         grid_square = location[0]
-    #         zone = location[3]
-    #         data = results[grid_square]
-            
-    #         if not data['dates']:
-    #             print(f"No data found for {grid_square}")
-    #             continue
-
-    #         df = pd.DataFrame({"datetime": data['dates'], grid_square: data['values']})
-
-    #         # Sort the dataframe into date order
-    #         sorted_df = df.sort("datetime")
-            
-    #         # Format datetime column
-    #         sorted_df = sorted_df.with_columns(
-    #             pd.col("datetime").dt.strftime("%Y-%m-%d %H:%M:%S")
-    #         )
-
-    #         output_path = Path(self.config.CSV_TOP_FOLDER) / f"{zone}_timeseries_data.csv"
-    #         sorted_df.write_csv(
-    #             output_path,
-    #             float_precision=4
-    #         )
-    #     logging.info("All CSV files written.")
 
     def write_results_to_csv(self, results, locations):
         """Write extracted data to CSV files for each zone.

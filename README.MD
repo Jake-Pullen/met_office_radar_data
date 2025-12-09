@@ -66,7 +66,6 @@ The `config.py` file defines folder paths:
 
 - DAT_TOP_FOLDER: "./dat_files"
 - ASC_TOP_FOLDER: "./asc_files"
-- CSV_TOP_FOLDER: "./csv_files"
 - COMBINED_FOLDER: "./combined_files"
 
 Example of how the zone csv files should look:
