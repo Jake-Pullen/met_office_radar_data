@@ -74,8 +74,13 @@ if __name__ == "__main__":
                         results[zone_id]['values'].append(res['value'])
                 
                 completed_count += 1
-                if completed_count % 10 == 0:
-                    logging.info(f'Processed {completed_count} out of {total_files} files')
+                if completed_count % 100 == 0:
+                    elapsed_time = time.time() - start
+                    files_per_minute = (completed_count / elapsed_time) * 60
+                    remaining_files = total_files - completed_count
+                    eta_minutes = remaining_files / (files_per_minute / 60) / 60
+                    logging.info(f''''Processed {completed_count} out of {total_files} files.
+    Speed: {files_per_minute:.2f} files/min. ETA: {eta_minutes:.2f} minutes''')
         except KeyboardInterrupt:
             logging.warning("KeyboardInterrupt received. Cancelling pending tasks...")
             executor.shutdown(wait=False, cancel_futures=True)
