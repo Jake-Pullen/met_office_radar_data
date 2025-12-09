@@ -24,11 +24,11 @@ if __name__ == "__main__":
             reader = csv.reader(csvfile)
             header = next(reader)  # Skip header row
             for row in reader:
-                # Extract the relevant fields: Ossheet (location ID), Easting, Northing, Zone
-                zone_id = row[1]  # Ossheet column
-                easting = int(row[2])  # Easting column
-                northing = int(row[3])  # Northing column
-                zone = int(row[6])  # ZoneID column
+                # Extract the relevant fields: 1K Grid, Easting, Northing, Zone
+                zone_id = row[0]  # Ossheet column
+                easting = int(row[1])  # Easting column
+                northing = int(row[2])  # Northing column
+                zone = int(row[3])  # ZoneID column
                 locations.append([zone_id, easting, northing, zone])
 
     batch = BatchNimrod(Config)
