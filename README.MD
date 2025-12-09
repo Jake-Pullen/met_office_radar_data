@@ -9,7 +9,6 @@ The project consists of a main pipeline workflow that processes multiple modules
 - `main.py`: Main pipeline orchestrator that calls on the modules as needed
 - `batch_nimrod.py`: Module for batch processing multiple NIMROD files with configurable bounding boxes
 - `generate_timeseries.py`: Module for extracting cropped rain data and creating rainfall timeseries
-- `combine_timeseries.py`: Module for combining grouped timeseries CSVs into consolidated datasets
 
 ## Features
 
@@ -31,10 +30,6 @@ The project consists of a main pipeline workflow that processes multiple modules
 - Extract cropped rain data based on specified locations
 - Create rainfall timeseries CSVs for each location
 - Parse datetime from filename and create proper datetime index
-
-### combine_timeseries.py
-
-- Combine multiple timeseries CSV files into grouped datasets
 - Group locations by specified output groups
 - Create consolidated CSV files for each group
 

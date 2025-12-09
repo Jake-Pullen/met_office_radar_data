@@ -12,6 +12,16 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+def process_pipeline(dat_file):
+    # 1. Process DAT to ASC
+    asc_file = batch._process_single_file(dat_file)
+    if not asc_file:
+        return None
+
+    # 2. Extract data from ASC
+    file_results = timeseries.process_asc_file(asc_file, locations)
+    return file_results
+
 if __name__ == "__main__":
     os.makedirs(Path(Config.ASC_TOP_FOLDER), exist_ok=True)
     os.makedirs(Path(Config.COMBINED_FOLDER), exist_ok=True)
@@ -44,16 +54,6 @@ if __name__ == "__main__":
 
     # Initialize results structure
     results = {loc[0]: {"dates": [], "values": []} for loc in locations}
-
-    def process_pipeline(dat_file):
-        # 1. Process DAT to ASC
-        asc_file = batch._process_single_file(dat_file)
-        if not asc_file:
-            return None
-
-        # 2. Extract data from ASC
-        file_results = timeseries.process_asc_file(asc_file, locations)
-        return file_results
 
     # Get list of DAT files
     dat_files = [
