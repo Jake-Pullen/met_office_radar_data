@@ -14,7 +14,7 @@ logging.basicConfig(
 
 if __name__ == "__main__":
     os.makedirs(Path(Config.ASC_TOP_FOLDER), exist_ok=True)
-    os.makedirs(Path(Config.CSV_TOP_FOLDER), exist_ok=True)
+    #os.makedirs(Path(Config.CSV_TOP_FOLDER), exist_ok=True)
     os.makedirs(Path(Config.COMBINED_FOLDER), exist_ok=True)
 
     locations = []
@@ -92,11 +92,11 @@ if __name__ == "__main__":
 
     logging.info("Writing CSV files...")
     timeseries.write_results_to_csv(results, locations)
-    results.clear()
+    # results.clear()
 
-    logging.info("combining CSVs into groups")
-    combiner.combine_csv_files()
-    logging.info("CSVs combined!")
+    # logging.info("combining CSVs into groups")
+    # combiner.combine_csv_files()
+    # logging.info("CSVs combined!")
     end = time.time()
     elapsed_time = end - start
 

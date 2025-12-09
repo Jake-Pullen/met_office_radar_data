@@ -170,34 +170,106 @@ class GenerateTimeseries:
                 executor.shutdown(wait=False, cancel_futures=True)
                 raise
 
+    # def write_results_to_csv(self, results, locations):
+    #     """Write extracted data to CSV files for each location.
+
+    #     Args:
+    #         results (dict): Aggregated results {zone_id: {'dates': [], 'values': []}}
+    #         locations (list): List of location data
+    #     """
+    #     for location in locations:
+    #         grid_square = location[0]
+    #         zone = location[3]
+    #         data = results[grid_square]
+            
+    #         if not data['dates']:
+    #             print(f"No data found for {grid_square}")
+    #             continue
+
+    #         df = pd.DataFrame({"datetime": data['dates'], grid_square: data['values']})
+
+    #         # Sort the dataframe into date order
+    #         sorted_df = df.sort("datetime")
+            
+    #         # Format datetime column
+    #         sorted_df = sorted_df.with_columns(
+    #             pd.col("datetime").dt.strftime("%Y-%m-%d %H:%M:%S")
+    #         )
+
+    #         output_path = Path(self.config.CSV_TOP_FOLDER) / f"{zone}_timeseries_data.csv"
+    #         sorted_df.write_csv(
+    #             output_path,
+    #             float_precision=4
+    #         )
+    #     logging.info("All CSV files written.")
+
     def write_results_to_csv(self, results, locations):
-        """Write extracted data to CSV files for each location.
+        """Write extracted data to CSV files for each zone.
 
         Args:
             results (dict): Aggregated results {zone_id: {'dates': [], 'values': []}}
-            locations (list): List of location data
+            locations (list): List of location data [zone_id, easting, northing, zone]
         """
-        for location in locations:
-            zone_id = location[0]
-            data = results[zone_id]
-            
-            if not data['dates']:
-                print(f"No data found for {zone_id}")
-                continue
+        # Map zone_id -> zone
+        zone_map = {loc[0]: loc[3] for loc in locations}
 
-            df = pd.DataFrame({"datetime": data['dates'], zone_id: data['values']})
+        # Group results by zone and collect all unique dates
+        zone_data = {}
+        for loc in locations:
+            zone_id = loc[0]
+            zone_name = loc[3]
 
-            # Sort the dataframe into date order
+            if zone_name not in zone_data:
+                zone_data[zone_name] = {'dates': [], 'values': {}}
+
+            zone_data[zone_name]['values'][zone_id] = results[zone_id]['values']
+            zone_data[zone_name]['dates'].extend(results[zone_id]['dates'])
+
+        # Get unique sorted dates across all zones
+        for zone_name, data in zone_data.items():
+            data['dates'] = sorted(set(data['dates']))
+
+        # Now write one CSV per zone with aligned timestamps
+        for zone_name, data in zone_data.items():
+            dates = data['dates']
+            values_dict = data['values']
+
+            # Create aligned DataFrame
+            df_dict = {"datetime": dates}
+            for grid_square, values in values_dict.items():
+                # Align values to the common dates
+                aligned_values = []
+                value_iter = iter(values)
+                date_iter = iter(dates)
+
+                current_date = next(date_iter, None)
+                current_value = next(value_iter, None)
+
+                for expected_date in dates:
+                    if current_date == expected_date:
+                        aligned_values.append(current_value)
+                        try:
+                            current_date = next(date_iter)
+                            current_value = next(value_iter)
+                        except StopIteration:
+                            current_date = None
+                            current_value = None
+                    else:
+                        aligned_values.append(None)  # Missing value
+
+                df_dict[grid_square] = aligned_values
+
+            df = pd.DataFrame(df_dict)
+
+            # Sort by datetime (already sorted)
             sorted_df = df.sort("datetime")
-            
+
             # Format datetime column
             sorted_df = sorted_df.with_columns(
                 pd.col("datetime").dt.strftime("%Y-%m-%d %H:%M:%S")
             )
 
-            output_path = Path(self.config.CSV_TOP_FOLDER) / f"{zone_id}_timeseries_data.csv"
-            sorted_df.write_csv(
-                output_path,
-                float_precision=4
-            )
+            output_path = Path(self.config.COMBINED_FOLDER) / f"{zone_name}_timeseries_data.csv"
+            sorted_df.write_csv(output_path, float_precision=4)
+
         logging.info("All CSV files written.")
