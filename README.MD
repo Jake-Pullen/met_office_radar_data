@@ -1,6 +1,6 @@
 # UK Met Office Rain Radar NIMROD Data Processor
 
-This project provides tools for processing UK Met Office Rain Radar NIMROD image files. It allows extraction of raster data from NIMROD .dat format files and conversion to ESRI ASCII (.asc) format. It also allows the creation of timeseries data from the ASC files. 
+This project provides tools for processing UK Met Office Rain Radar NIMROD image files. It allows extraction of raster data from NIMROD .dat format files and conversion to ESRI ASCII (.asc) format. It also allows the creation of timeseries data from the ASC files, formatted for Infoworks ICM. 
 
 ## Overview
 
@@ -16,8 +16,8 @@ The project consists of a main pipeline workflow that processes multiple modules
 
 - Orchestrates the entire workflow pipeline
 - Processes DAT files to ASC format
-- Generates timeseries data for specified locations
-- Combines grouped CSV files into consolidated datasets
+- Generates timeseries data for specified locations 
+- Combines grouped CSV files into consolidated datasets formatted for Infoworks ICM
 
 ### batch_nimrod.py
 
