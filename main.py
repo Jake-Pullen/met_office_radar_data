@@ -6,11 +6,12 @@ import concurrent.futures
 from pathlib import Path
 
 from config import Config
-from modules import BatchNimrod, GenerateTimeseries
+from modules import BatchNimrod, GenerateTimeseries, Extract
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
 
 def process_pipeline(dat_file):
     # 1. Process DAT to ASC
@@ -22,9 +23,21 @@ def process_pipeline(dat_file):
     file_results = timeseries.process_asc_file(asc_file, locations)
     return file_results
 
+
+def initialise_folders():
+    folder_list = [
+        Config.ASC_TOP_FOLDER,
+        Config.COMBINED_FOLDER,
+        Config.GZ_TOP_FOLDER,
+        Config.DAT_TOP_FOLDER,
+        Config.TAR_TOP_FOLDER,
+    ]
+    for path in folder_list:
+        Path(path).mkdir(exist_ok=True)
+
+
 if __name__ == "__main__":
-    os.makedirs(Path(Config.ASC_TOP_FOLDER), exist_ok=True)
-    os.makedirs(Path(Config.COMBINED_FOLDER), exist_ok=True)
+    initialise_folders()
 
     locations = []
     zones = set()
@@ -44,6 +57,7 @@ if __name__ == "__main__":
     logging.info(f"Count of 1km Grids: {len(locations)}")
     logging.info(f"Count of Zones: {len(zones)}")
 
+    extraction = Extract(Config)
     batch = BatchNimrod(Config)
     timeseries = GenerateTimeseries(Config, locations)
 
@@ -54,6 +68,9 @@ if __name__ == "__main__":
 
     # Initialize results structure
     results = {loc[0]: {"dates": [], "values": []} for loc in locations}
+
+    logging.info("Extracting tar and gz files")
+    extraction.run_extraction()
 
     # Get list of DAT files
     dat_files = [

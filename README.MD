@@ -9,15 +9,22 @@ The project consists of a main pipeline workflow that processes multiple modules
 - `main.py`: Main pipeline orchestrator that calls on the modules as needed
 - `batch_nimrod.py`: Module for batch processing multiple NIMROD files with configurable bounding boxes
 - `generate_timeseries.py`: Module for extracting cropped rain data and creating rainfall timeseries
+- `extract.py`: Module for extracting the dat files from the .gz.tar files that are downloaded from source
 
 ## Features
 
 ### main.py
 
 - Orchestrates the entire workflow pipeline
+- Uncompress the packed .gz.tar files to DAT files
 - Processes DAT files to ASC format
 - Generates timeseries data for specified locations 
 - Combines grouped CSV files into consolidated datasets formatted for Infoworks ICM
+
+### extract.py
+
+- Converts all .gz.tar files first to 288 (1 day) of .gz files
+- Converts all .gz files to .dat files ready for processing.
 
 ### batch_nimrod.py
 
@@ -44,24 +51,28 @@ It is recommended to use UV for environment and package handling.
 
 1. Ensure all required packages are installed `uv sync`
 1. Adjust the config.py file to match your needs.
-1. Ensure your .dat files are in the DAT_TOP_FOLDER (as per config location)
+1. Ensure your .gz.tar files are in the TAR_TOP_FOLDER (as per config location)
 1. Ensure your zone csv files are in the ZONE_FOLDER (as per config location)
 1. RunMain Pipeline `uv run main.py` Note that you will have to set your environment variable `PYTHON_GIL=0` first
 1. find the output in the COMBINED_FOLDER (as per config location)
 
 The main pipeline will:
 
-1. Process DAT files to ASC format if needed
+1. Uncompress the .gz.tar files ready for processing
+1. Process DAT files to ASC format
 1. Generate timeseries data for specified locations
-1. Combine grouped CSV files into consolidated datasets
+1. Combine grouped locations into consolidated datasets
 
 ## Configuration
 
-The `config.py` file defines folder paths:
+The `config.py` file defines folder paths and file deletion options:
 
-- DAT_TOP_FOLDER: "./dat_files"
-- ASC_TOP_FOLDER: "./asc_files"
-- COMBINED_FOLDER: "./combined_files"
+- TAR_TOP_FOLDER = "./tar_files"
+- GZ_TOP_FOLDER = "./gz_files"
+- DAT_TOP_FOLDER = "./dat_files"
+- ASC_TOP_FOLDER = "./asc_files"
+- COMBINED_FOLDER = "./combined_files"
+- ZONE_FOLDER = "./zone_inputs"
 
 Example of how the zone csv files should look:
 
