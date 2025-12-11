@@ -1,6 +1,6 @@
 [project]
 name = "met-office"
-version = "1.1.1"
+version = "1.2.0"
 description = "Convert .dat nimrod files to .asc files"
 readme = "README.md"
 requires-python = ">=3.14"
