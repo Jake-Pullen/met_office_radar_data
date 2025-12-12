@@ -15,11 +15,12 @@ The project consists of a main pipeline workflow that processes multiple modules
 
 ### main.py
 
-- Orchestrates the entire workflow pipeline
-- Uncompress the packed .gz.tar files to DAT files
-- Processes DAT files to ASC format
-- Generates timeseries data for specified locations 
-- Combines grouped CSV files into consolidated datasets formatted for Infoworks ICM
+- **Startup Safety Check**: Scans the `COMBINED_FOLDER` at startup and warns the user if existing files are found, offering a chance to abort to prevent accidental data mixing.
+- **Batch Processing**: Processes input tar files in configurable batches to manage resource usage.
+- **End-to-End Processing**: Extracts GZ files, processes DAT/ASC, and appends to CSV in a single thread per file.
+- **Concurrency**: Uses multi-threading to process individual GZ files within a batch concurrently.
+- **Cumulative Data**: Automatically appends new query results to the existing CSV files in `COMBINED_FOLDER` for each batch, ensuring no data is lost and columns are correctly aligned.
+- **Dynamic ETA**: Provides a real-time estimate of completion time.
 
 ### extract.py
 
@@ -73,6 +74,7 @@ The `config.py` file defines folder paths and file deletion options:
 - ASC_TOP_FOLDER = "./asc_files"
 - COMBINED_FOLDER = "./combined_files"
 - ZONE_FOLDER = "./zone_inputs"
+- BATCH_SIZE = 5 (Number of tar files to process per batch)
 
 Example of how the zone csv files should look:
 

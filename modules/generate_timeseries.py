@@ -164,8 +164,8 @@ class GenerateTimeseries:
                 executor.shutdown(wait=False, cancel_futures=True)
                 raise
 
-    def write_results_to_csv(self, results, locations):
-        """Write extracted data to CSV files for each zone.
+    def append_results_to_csv(self, results, locations):
+        """Append extracted data to CSV files for each zone.
 
         Args:
             results (dict): Aggregated results {zone_id: {'dates': [], 'values': []}}
@@ -217,19 +217,41 @@ class GenerateTimeseries:
 
                 df_dict[grid_square] = aligned_values
 
-            df = pd.DataFrame(df_dict)
+            new_df = pd.DataFrame(df_dict)
 
-            # Sort by datetime (already sorted)
-            sorted_df = df.sort("datetime")
-
-            # Format datetime column
-            sorted_df = sorted_df.with_columns(
+            # Format datetime column in new_df
+            new_df = new_df.with_columns(
                 pd.col("datetime").dt.strftime("%Y-%m-%d %H:%M:%S")
             )
 
             output_path = (
                 Path(self.config.COMBINED_FOLDER) / f"{zone_name}_timeseries_data.csv"
             )
-            sorted_df.write_csv(output_path, float_precision=4)
 
-        logging.info("All CSV files written.")
+            if output_path.exists():
+                # Load existing CSV
+                existing_df = pd.read_csv(output_path)
+
+                # Reorder new_df to match existing_df
+                new_df = new_df.select(existing_df.columns)
+
+                # Concatenate
+                combined_df = pd.concat([existing_df, new_df])
+                # Sort by datetime
+                combined_df = combined_df.sort("datetime")
+                # Write back
+                combined_df.write_csv(output_path, float_precision=4)
+            else:
+                # Write new CSV
+                # Sort columns to ensure deterministic order (datetime first)
+                cols = new_df.columns
+                cols.remove("datetime")
+                cols.sort()
+                sorted_cols = ["datetime"] + cols
+                new_df = new_df.select(sorted_cols)
+
+                # Sort by datetime (already sorted but good practice)
+                sorted_df = new_df.sort("datetime")
+                sorted_df.write_csv(output_path, float_precision=4)
+
+        logging.info("All CSV files updated.")
