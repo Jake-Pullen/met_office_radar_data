@@ -167,13 +167,13 @@ if __name__ == "__main__":
 
                     completed_count += 1
                     if completed_count % 100 == 0:
-                        elapsed_time = time.time() - start
-                        rate_per_second = completed_count / elapsed_time
-
                         files_processed_previous = i * files_per_tar
                         files_processed_so_far = (
                             files_processed_previous + completed_count
                         )
+                        
+                        elapsed_time = time.time() - start
+                        rate_per_second = files_processed_so_far / elapsed_time
 
                         remaining_files = estimated_total_files - files_processed_so_far
 
@@ -213,4 +213,11 @@ if __name__ == "__main__":
     end = time.time()
     elapsed_time = end - start
 
-    logging.info(f"All Complete total time {elapsed_time:.2f} seconds")
+    if elapsed_time < 60:
+        elapsed_time_str = f"{int(elapsed_time)}s"
+    elif elapsed_time < 3600:
+        elapsed_time_str = f"{int(elapsed_time // 60)}m {int(elapsed_time % 60)}s"
+    else:
+        elapsed_time_str = f"{int(elapsed_time // 3600)}h {int((elapsed_time % 3600) // 60)}m"
+
+    logging.info(f"All Complete total time {elapsed_time_str}")
