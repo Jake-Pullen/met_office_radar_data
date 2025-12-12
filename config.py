@@ -11,3 +11,5 @@ class Config:
     delete_gz_after_processing = True
     delete_dat_after_processing = True
     delete_asc_after_processing = True
+
+    BATCH_SIZE = 5
