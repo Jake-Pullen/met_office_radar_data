@@ -15,7 +15,7 @@ The project consists of a main pipeline workflow that processes multiple modules
 
 ### main.py
 
-- **Startup Safety Check**: Scans the `COMBINED_FOLDER` at startup and warns the user if existing files are found, offering a chance to abort to prevent accidental data mixing.
+- **Startup Safety Check**: Scans the `COMBINED_FOLDER` at startup and warns the user if existing files are found, Deleting existing files if continue is accepted.
 - **Batch Processing**: Processes input tar files in configurable batches to manage resource usage.
 - **End-to-End Processing**: Extracts GZ files, processes DAT/ASC, and appends to CSV in a single thread per file.
 - **Concurrency**: Uses multi-threading to process individual GZ files within a batch concurrently.

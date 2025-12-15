@@ -92,13 +92,16 @@ if __name__ == "__main__":
             f"Found {len(existing_combined)} files in {Config.COMBINED_FOLDER}"
         )
         logging.warning(
-            "You may want to remove these before continuing to avoid duplicates or messy data."
+            "If you continue these WILL BE DELETED, Please make sure you have them saved."
         )
         logging.warning("!" * 80)
         response = input("Continue? (Y/N): ").strip().lower()
         if response != "y":
             logging.info("Aborting...")
             exit(0)
+        else:
+            shutil.rmtree(Path(Config.COMBINED_FOLDER))  # Delete everything including the directory
+            Path(Config.COMBINED_FOLDER).mkdir()
 
     extraction = Extract(Config)
     batch = BatchNimrod(Config)
@@ -130,12 +133,6 @@ if __name__ == "__main__":
         # 1. Extract batch (TAR -> GZ)
         logging.info("Extracting tar files for batch")
         extraction.extract_tar_batch(batch_files)
-        # Note: We do NOT run extract_gz_batch anymore. We will find GZ files and process them.
-
-        # Get list of GZ files (recursively or flat?)
-        # extract_tar_batch puts them in GZ_TOP_FOLDER/tar_name_without_ext
-        # So we need to look there.
-        # Ideally we know where we put them.
 
         gz_files_to_process = []
         for tar_file in batch_files:
