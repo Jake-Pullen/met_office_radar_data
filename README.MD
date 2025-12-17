@@ -17,6 +17,7 @@ The project consists of a main pipeline workflow that processes multiple modules
 
 - **Startup Safety Check**: Scans the `COMBINED_FOLDER` at startup and warns the user if existing files are found, Deleting existing files if continue is accepted.
 - **Batch Processing**: Processes input tar files in configurable batches to manage resource usage.
+- **Tidy by Default**: Default settings wil delete all mid step files and keep only the original Tar files. Can be changed in config.py
 - **End-to-End Processing**: Extracts GZ files, processes DAT/ASC, and appends to CSV in a single thread per file.
 - **Concurrency**: Uses multi-threading to process individual GZ files within a batch concurrently.
 - **Cumulative Data**: Automatically appends new query results to the existing CSV files in `COMBINED_FOLDER` for each batch, ensuring no data is lost and columns are correctly aligned.
@@ -31,7 +32,7 @@ The project consists of a main pipeline workflow that processes multiple modules
 
 - Process multiple NIMROD dat files
 - Automatically extract datetime from file data
-- Export clipped raster data to ASC format
+- Export raster data to ASC format
 
 ### generate_timeseries.py
 
