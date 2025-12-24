@@ -56,11 +56,11 @@ class GenerateTimeseries:
         xpp = ncols_basin * cellres_basin
         ypp = nrows_basin * cellres_basin
 
-        start_col = np.floor(xp / cellres_radar)
-        end_col = np.ceil((xpp + xp) / cellres_radar)
+        start_col = np.floor(xp / cellres_radar) - 1
+        end_col = np.ceil((xpp + xp) / cellres_radar) - 1
 
-        start_row = np.floor(nrows_radar - ((yp + ypp) / cellres_radar))
-        end_row = np.ceil(nrows_radar - (yp / cellres_radar))
+        start_row = np.floor(nrows_radar - ((yp + ypp) / cellres_radar)) + 1
+        end_row = np.ceil(nrows_radar - (yp / cellres_radar)) + 1
 
         return int(start_col), int(start_row), int(end_col), int(end_row)
 
@@ -178,43 +178,26 @@ class GenerateTimeseries:
             zone_name = loc[3]
 
             if zone_name not in zone_data:
-                zone_data[zone_name] = {"dates": [], "values": {}}
+                zone_data[zone_name] = {"dates": set(), "values": {}}
 
-            zone_data[zone_name]["values"][zone_id] = results[zone_id]["values"]
-            zone_data[zone_name]["dates"].extend(results[zone_id]["dates"])
+            # Create date -> value map for this grid square
+            raw_dates = results[zone_id]["dates"]
+            raw_values = results[zone_id]["values"]
+            date_value_map = dict(zip(raw_dates, raw_values))
 
-        # Get unique sorted dates across all zones
-        for zone_name, data in zone_data.items():
-            data["dates"] = sorted(set(data["dates"]))
+            zone_data[zone_name]["values"][zone_id] = date_value_map
+            zone_data[zone_name]["dates"].update(raw_dates)
 
         # Now write one CSV per zone with aligned timestamps
         for zone_name, data in zone_data.items():
-            dates = data["dates"]
+            sorted_dates = sorted(data["dates"])
             values_dict = data["values"]
 
             # Create aligned DataFrame
-            df_dict = {"datetime": dates}
-            for grid_square, values in values_dict.items():
-                # Align values to the common dates
-                aligned_values = []
-                value_iter = iter(values)
-                date_iter = iter(dates)
-
-                current_date = next(date_iter, None)
-                current_value = next(value_iter, None)
-
-                for expected_date in dates:
-                    if current_date == expected_date:
-                        aligned_values.append(current_value)
-                        try:
-                            current_date = next(date_iter)
-                            current_value = next(value_iter)
-                        except StopIteration:
-                            current_date = None
-                            current_value = None
-                    else:
-                        aligned_values.append(None)  # Missing value
-
+            df_dict = {"datetime": sorted_dates}
+            for grid_square, dv_map in values_dict.items():
+                # Align values to the common search dates using the map
+                aligned_values = [dv_map.get(d) for d in sorted_dates]
                 df_dict[grid_square] = aligned_values
 
             new_df = pd.DataFrame(df_dict)
