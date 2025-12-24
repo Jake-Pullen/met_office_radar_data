@@ -100,7 +100,9 @@ if __name__ == "__main__":
             logging.info("Aborting...")
             exit(0)
         else:
-            shutil.rmtree(Path(Config.COMBINED_FOLDER))  # Delete everything including the directory
+            shutil.rmtree(
+                Path(Config.COMBINED_FOLDER)
+            )  # Delete everything including the directory
             Path(Config.COMBINED_FOLDER).mkdir()
 
     extraction = Extract(Config)
@@ -168,7 +170,7 @@ if __name__ == "__main__":
                         files_processed_so_far = (
                             files_processed_previous + completed_count
                         )
-                        
+
                         elapsed_time = time.time() - start
                         rate_per_second = files_processed_so_far / elapsed_time
 
@@ -215,6 +217,8 @@ if __name__ == "__main__":
     elif elapsed_time < 3600:
         elapsed_time_str = f"{int(elapsed_time // 60)}m {int(elapsed_time % 60)}s"
     else:
-        elapsed_time_str = f"{int(elapsed_time // 3600)}h {int((elapsed_time % 3600) // 60)}m"
+        elapsed_time_str = (
+            f"{int(elapsed_time // 3600)}h {int((elapsed_time % 3600) // 60)}m"
+        )
 
     logging.info(f"All Complete total time {elapsed_time_str}")

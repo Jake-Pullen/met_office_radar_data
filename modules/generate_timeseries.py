@@ -57,7 +57,7 @@ class GenerateTimeseries:
         ypp = nrows_basin * cellres_basin
 
         start_col = np.floor(xp / cellres_radar) - 1
-        end_col = np.ceil((xpp + xp) / cellres_radar) -1
+        end_col = np.ceil((xpp + xp) / cellres_radar) - 1
 
         start_row = np.floor(nrows_radar - ((yp + ypp) / cellres_radar)) + 1
         end_row = np.ceil(nrows_radar - (yp / cellres_radar)) + 1
